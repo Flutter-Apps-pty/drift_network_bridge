@@ -1,0 +1,46 @@
+name: drift_network_bridge
+description: Middleware Network bridge support for drift
+version: 0.0.1
+
+environment:
+  sdk: '>=3.0.0-0 <4.0.0'
+
+dependencies:
+  collection: ^1.16.0
+  drift: ^2.0.0
+  postgres:
+  meta: ^1.8.0
+  json_serializable:
+  stream_channel:
+  uuid:
+  typed_data:
+  mqtt_client:
+  async:
+
+
+
+dependency_overrides:
+
+  postgres:
+    git:
+      url: https://github.com/isoos/postgresql-dart.git
+  drift:
+    git:
+      url: https://github.com/simolus3/drift.git
+      path: drift
+
+#  drift_postgres:
+#    git:
+#      url: https://github.com/simolus3/drift.git
+#      path: extras/drift_postgres
+
+
+dev_dependencies:
+  lints: ^2.0.0
+  test: ^1.18.0
+  drift_testcases:
+    path: drift_testcases
+  json_annotation:
+  drift_dev:
+  build_runner:
+  mockito:
