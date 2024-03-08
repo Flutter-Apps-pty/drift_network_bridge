@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/isolate.dart';
-import 'package:drift_network_bridge/src/remote.dart';
+import 'package:drift_network_bridge/src/network.dart';
 import 'package:drift/src/remote/protocol.dart';
 import 'package:drift_network_bridge/drift_network_bridge.dart';
 import 'package:drift_testcases/database/database.dart';

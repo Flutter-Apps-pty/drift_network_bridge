@@ -13,7 +13,7 @@ import 'package:drift/src/runtime/cancellation_zone.dart';
 import 'package:drift/src/remote/protocol.dart';
 
 import 'package:stream_channel/stream_channel.dart';
-import 'communication.dart';
+import 'network_communication.dart';
 
 
 /// The client part of a remote drift communication scheme.

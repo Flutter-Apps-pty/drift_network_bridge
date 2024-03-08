@@ -8,7 +8,7 @@ import 'package:stream_channel/stream_channel.dart';
 import 'package:drift/src/runtime/cancellation_zone.dart';
 // ignore: implementation_imports
 import 'package:drift/src/remote/protocol.dart';
-
+import 'package:stack_trace/stack_trace.dart';
 /// Wrapper around a two-way communication channel to support requests and
 /// responses.
 @internal
@@ -201,8 +201,15 @@ class _PendingRequest {
 
   _PendingRequest(this.completer, this.requestTrace);
 
-  void completeWithError(Object error) {
-    completer.completeError(error, requestTrace);
+  void completeWithError(Object error, [StackTrace? trace]) {
+    completer.completeError(
+        error,
+        trace == null
+            ? requestTrace
+            : Chain([
+          if (trace is Chain) ...trace.traces else Trace.from(trace),
+          Trace.from(requestTrace)
+        ]));
   }
 }
 
@@ -211,6 +218,11 @@ class _PendingRequest {
 class ConnectionClosedException implements Exception {
   /// Constant constructor.
   const ConnectionClosedException();
+
+  @override
+  String toString() {
+    return 'Channel was closed before receiving a response';
+  }
 }
 
 /// An exception reported on the other end of a drift remote protocol.

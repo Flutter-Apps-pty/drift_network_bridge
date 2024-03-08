@@ -7,7 +7,7 @@ import 'package:drift_network_bridge/src/network_stream_channel/network_stream_c
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
-import '../src/remote.dart';
+import '../src/network.dart';
 import 'mqtt_stream_channel.dart';
 
 class MqttDatabaseGateway extends DatabaseGateway {

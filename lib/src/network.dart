@@ -8,11 +8,11 @@ import 'package:drift/remote.dart';
 
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
-import 'network_remote/client_impl.dart';
-import 'network_remote/communication.dart';
+import 'network_remote/network_client_impl.dart';
+import 'network_remote/network_communication.dart';
 // ignore: implementation_imports
 import 'package:drift/src/remote/protocol.dart';
-import 'network_remote/server_impl.dart';
+import 'network_remote/network_server_impl.dart';
 
 
 // ignore: subtype_of_sealed_class

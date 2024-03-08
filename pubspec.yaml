@@ -17,6 +17,7 @@ dependencies:
   mqtt_client:
   async:
   archive:
+  stack_trace:
 
 dev_dependencies:
   lints: ^2.0.0

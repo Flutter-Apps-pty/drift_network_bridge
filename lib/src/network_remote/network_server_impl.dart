@@ -6,8 +6,8 @@ import 'package:drift/src/remote/protocol.dart';
 
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
-import '../remote.dart';
-import 'communication.dart';
+import '../network.dart';
+import 'network_communication.dart';
 // ignore: implementation_imports
 import 'package:drift/src/runtime/cancellation_zone.dart';
 // ignore: subtype_of_sealed_class
