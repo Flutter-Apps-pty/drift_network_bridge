@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:drift/drift.dart';
 import 'package:drift/remote.dart';
+import 'package:drift_network_bridge/src/network.dart';
 import 'package:drift_network_bridge/src/network_stream_channel/network_stream_channel.dart';
 
 
@@ -27,7 +28,7 @@ abstract class DatabaseGateway {
 
 
   Future<void> serveExecuter(QueryExecutor executor,{bool serialize = true}) async {
-    _server = DriftServer(executor, allowRemoteShutdown: allowRemoteShutdown);
+    _server = DriftNetworkServer(executor, allowRemoteShutdown: allowRemoteShutdown);
     if(_serving){
       throw Exception('Already serving');
     }
