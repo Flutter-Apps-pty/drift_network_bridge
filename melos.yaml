@@ -1,0 +1,40 @@
+name: drift_network_bridge
+packages:
+  - packages/*
+
+command:
+  bootstrap:
+    hooks:
+      pre: melos clone_drift && dart pub upgrade
+      # Fails on first run, works on second run
+      post:   dart run .\bin\download_sqlite3.dart && 
+              melos bootstrap_drift && melos bootstrap_drift
+              
+
+version:
+    changelogs:
+      - path: CHANGELOG.md
+        description: |
+          All notable changes to foo packages will be documented in this file.
+        packageFilters:
+          scope: '*.dart'
+scripts:
+  clone_drift:
+    run: dart bin/clone_drift.dart
+  bootstrap_drift:
+    exec: melos bootstrap
+
+  build:
+    run: dart run build_runner build --delete-conflicting-outputs
+    exec: {concurrency: 1}
+    packageFilters:
+      dependsOn: build_runner
+
+  analyze:
+    exec: dart analyze .
+
+  test:
+    run: dart test --reporter github --total-shards=1 --shard-index=0 -j 1 -p vm --chain-stack-traces
+    exec: {concurrency: 1}
+    packageFilters:
+      dependsOn: test
