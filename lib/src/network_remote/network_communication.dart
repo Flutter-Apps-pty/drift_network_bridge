@@ -14,7 +14,7 @@ import 'package:stack_trace/stack_trace.dart';
 @internal
 class DriftNetworkCommunication {
   static const _protocol = DriftProtocol();
-
+  static Duration timeout = Duration(seconds: 30);
   final StreamChannel<Object?> _channel;
   final bool _debugLog;
   final bool _serialize;
@@ -110,24 +110,22 @@ class DriftNetworkCommunication {
   /// request.
   /// The [timeout] parameter specifies how long to wait for a response before
   /// timing out.
-  Future<T> request<T>(Object? request, {int? requestId, Duration? timeout = const Duration(seconds: 30)}) {
+  Future<T> request<T>(Object? request, {int? requestId, Duration? timeout}) {
     final id = requestId ?? newRequestId();
     final completer = Completer<T>();
-
+    timeout ??= DriftNetworkCommunication.timeout;
     _pendingRequests[id] = _PendingRequest(completer, StackTrace.current);
 
     _send(Request(id, request));
 
-    if (timeout != null) {
-      completer.future.timeout(
-        timeout,
-        onTimeout: () {
-          _pendingRequests[id]?.completeWithError(TimeoutException('Request timed out after $timeout', timeout));
-          _pendingRequests.remove(id); // Remove the pending request
-          return completer.future;
-        },
-      );
-    }
+    completer.future.timeout(
+      timeout,
+      onTimeout: () {
+        _pendingRequests[id]?.completeWithError(TimeoutException('Request timed out after $timeout', timeout));
+        _pendingRequests.remove(id); // Remove the pending request
+        return completer.future;
+      },
+    );
 
     return completer.future;
   }
