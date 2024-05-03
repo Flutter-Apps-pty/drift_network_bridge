@@ -2,6 +2,7 @@ import 'dart:async';
 
 // ignore: implementation_imports
 import 'package:drift/src/runtime/api/runtime_api.dart';
+import 'package:drift_network_bridge/utils/watch_dog.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
 // ignore: implementation_imports
@@ -25,7 +26,7 @@ class DriftNetworkCommunication {
   final Map<int, _PendingRequest> _pendingRequests = {};
   final StreamController<Request> _incomingRequests =
       StreamController(sync: true);
-
+  final Watchdog _watchdog = Watchdog();
   bool _startedClosingLocally = false;
   final Completer<void> _closeCompleter = Completer();
 
@@ -45,7 +46,7 @@ class DriftNetworkCommunication {
           pending.completeWithError(const ConnectionClosedException());
         }
         _pendingRequests.clear();
-
+        _watchdog.stop();
         _closeCompleter.complete();
       },
     );
@@ -83,7 +84,7 @@ class DriftNetworkCommunication {
     if (_debugLog) {
       driftRuntimeOptions.debugPrint('[IN]: $msg');
     }
-
+    _watchdog.pat();
     if (msg is SuccessResponse) {
       final request = _pendingRequests.remove(msg.requestId);
       request?.completer.complete(msg.response);
@@ -101,6 +102,9 @@ class DriftNetworkCommunication {
 
       request?.completeWithError(const CancellationException());
     }
+    if(_pendingRequests.isEmpty){
+      _watchdog.stop();
+    }
   }
 
   /// Sends a request and waits for the peer to reply with a value that is
@@ -115,17 +119,13 @@ class DriftNetworkCommunication {
     final completer = Completer<T>();
     timeout ??= DriftNetworkCommunication.timeout;
     _pendingRequests[id] = _PendingRequest(completer, StackTrace.current);
-
     _send(Request(id, request));
-
-    completer.future.timeout(
-      timeout,
-      onTimeout: () {
+    if(!_watchdog.isRunning){
+      _watchdog.start(timeout: timeout, onTimeout: (){
         _pendingRequests[id]?.completeWithError(TimeoutException('Request timed out after $timeout', timeout));
         _pendingRequests.remove(id); // Remove the pending request
-        return completer.future;
-      },
-    );
+      });
+    }
 
     return completer.future;
   }
