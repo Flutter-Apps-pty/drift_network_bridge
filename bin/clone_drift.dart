@@ -7,6 +7,9 @@ Future<void> main() async {
   // Git repository URL
   final String repoUrl = 'https://github.com/simolus3/drift.git';
 
+  // Branch to checkout
+  final String branch = 'latest-release';
+
   final directory = Directory(targetDir);
 
   if (await directory.exists()) {
@@ -15,11 +18,14 @@ Future<void> main() async {
     await Process.run('git', ['reset', '--hard'], workingDirectory: targetDir);
     await Process.run('git', ['clean', '-fd'], workingDirectory: targetDir);
     await Process.run('git', ['pull'], workingDirectory: targetDir);
+    await Process.run('git', ['checkout', branch], workingDirectory: targetDir);
+    await Process.run('git', ['pull', 'origin', branch], workingDirectory: targetDir);
     print('Repository updated.');
   } else {
     // If directory does not exist, clone the repository
     print('Cloning the repository into $targetDir...');
-    await Process.run('git', ['clone', repoUrl, targetDir]);
+    await Process.run('git', ['clone', '-b', branch, repoUrl, targetDir]);
     print('Repository cloned.');
   }
 }
+

@@ -1,26 +1,29 @@
-@TestOn('vm')
 @Timeout(Duration(seconds: 120))
 import 'dart:async';
 
 import 'package:async/async.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/isolate.dart';
-import 'package:drift_network_bridge/src/network.dart';
 import 'package:drift/src/remote/protocol.dart';
 import 'package:drift_network_bridge/drift_network_bridge.dart';
-import 'package:drift_testcases/database/database.dart';
+
 import 'package:mockito/mockito.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart';
-import '../packages/drift/drift/test/test_utils/database_vm.dart';
-import '../packages/drift/drift/test/generated/todos.dart';
-import '../packages/drift/drift/test/test_utils/mocks.dart';
+import 'integration_tests/drift_testcases/database/database.dart';
+import 'orginal/generated/todos.dart';
+import 'orginal/test_utils/database_vm.dart';
+import 'orginal/test_utils/mocks.dart';
+
+
+
 void main() {
 
   setUpAll(() {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     preferLocalSqlite3();
   });
+
   test('recover from half connection', () async {
     final gate = MqttDatabaseGateway('test.mosquitto.org',
         'unit_device', 'drift/test_site',
@@ -103,6 +106,7 @@ void main() {
       );
 
       final db = TodoDb(clientConn);
+
       await db.todosTable.select().get();
       await db.close();
     },

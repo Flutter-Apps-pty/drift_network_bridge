@@ -3,7 +3,7 @@ description: Middleware Network bridge support for drift
 version: 0.0.1
 
 environment:
-  sdk: '>=3.0.0-0 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
   collection: ^1.16.0
@@ -18,17 +18,20 @@ dependencies:
   async:
   archive:
   stack_trace:
-
+  test_descriptor:
+  rxdart:
+  http:
+  path:
+  sqlite3:
+  vm_service:
+    
 dev_dependencies:
   lints: ^2.0.0
   test: ^1.18.0
+  drift_dev:
   melos:
-  drift_testcases:
   json_annotation:
   build_runner:
   mockito:
-
-dependency_overrides:
-  drift_testcases:
-    path: packages/drift/extras/integration_tests/drift_testcases
-
+  analyzer:
+  shelf:
