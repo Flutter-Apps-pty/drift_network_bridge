@@ -70,7 +70,7 @@ class DriftMqttInterface extends DriftBridgeInterface {
           serverClient.publishString('${pIncomingTopic.rawTopic}/$payload', 'ok');
         }
         else{
-          print('should not be here');
+          print('Discarding message from ${message.topic}');
         }
 
       }
