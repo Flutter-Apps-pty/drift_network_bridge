@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:drift_network_bridge/error_handling/error_or.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
 import 'package:drift_network_bridge/src/drift_bridge_server.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:stream_channel/stream_channel.dart';
 import 'package:typed_data/src/typed_buffer.dart';
 import 'package:uuid/data.dart';
 import 'package:uuid/v8.dart';
@@ -33,48 +35,42 @@ class DriftMqttInterface extends DriftBridgeInterface {
   late MqttServerClient serverClient;
   final String _topic = 'drift_test_server';
   Completer _promiseToClose = Completer();
+
+  DriftMqttInterface({super.isServer = true});
   SubscriptionTopic get sIncomingTopic => SubscriptionTopic('$_topic/stream/#');
   PublicationTopic get pIncomingTopic => PublicationTopic('$_topic/stream');
   final StreamController<DriftBridgeClient> _incomingConnections = StreamController.broadcast();
-  DriftMqttInterface({bool server = true}) {
-    if(server) {
-      serverClient = MqttServerClient.withPort(
-          '127.0.0.1', 'drift_test_server', 1883);
-      serverClient.connectionMessage ??= MqttConnectMessage();
-      serverClient.connectionMessage =
-          serverClient.connectionMessage!.startClean();
-      serverClient.logging(on: false);
-      serverClient.keepAlivePeriod = 30;
-      serverClient.setProtocolV311();
-      Future.sync(_initializeServer);
-    }
-  }
 
-  Future<void> _initializeServer() async {
-    await serverClient.connect();
-    serverClient.subscribe(sIncomingTopic.rawTopic, MqttQos.exactlyOnce);
-    _promiseToClose.future.then((_) {
-      serverClient.disconnect();
-    });
-    serverClient.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) async {
-      ///create new clients for each incoming connection
-      for (var message in messages) {
-        if(sIncomingTopic.safeMatch(PublicationTopic(message.topic))){
+  Future<ErrorOr<void>> _initializeServer() async {
+    try{
+      await serverClient.connect();
+      serverClient.subscribe(sIncomingTopic.rawTopic, MqttQos.exactlyOnce);
+      _promiseToClose.future.then((_) {
+        serverClient.disconnect();
+      });
+      serverClient.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) async {
+        ///create new clients for each incoming connection
+        for (var message in messages) {
           final payload = MqttPublishPayload.bytesToStringAsString(
               ((message.payload) as MqttPublishMessage).payload.message);
-          final newClient = DriftMqttClient(MqttServerClient.withPort(
-              '127.0.0.1', 'server-$payload', 1883),isClient: false);
-          newClient.session = payload;
-          await newClient.connect();
-          _incomingConnections.add(newClient);
-          serverClient.publishString('${pIncomingTopic.rawTopic}/$payload', 'ok');
+          if(sIncomingTopic.safeMatch(PublicationTopic(message.topic)) && !payload.contains('ok')){
+            final newClient = DriftMqttClient(MqttServerClient.withPort(
+                '127.0.0.1', 'server-$payload', 1883),isClient: false);
+            newClient.session = payload;
+            await newClient.connect();
+            _incomingConnections.add(newClient);
+            serverClient.publishString('${pIncomingTopic.rawTopic}/$payload', 'ok');
+          }
+          else{
+            print('Discarding message from ${message.topic}');
+          }
         }
-        else{
-          print('Discarding message from ${message.topic}');
-        }
-
-      }
-    });
+      });
+    } catch (e) {
+      print('Error connecting to the server $e');
+      return ErrorOr.error(e);
+    }
+    return ErrorOr.value(null);
   }
 
   @override
@@ -108,9 +104,20 @@ class DriftMqttInterface extends DriftBridgeInterface {
   Stream<DriftBridgeClient> get incomingConnections =>
       _incomingConnections.stream;
 
-  static Future<DatabaseConnection> remote() async {
-    DriftBridgeServer server = DriftBridgeServer(DriftMqttInterface(server: false));
-    return  server.connect();
+  static DatabaseConnection remote() =>
+      DriftBridgeInterface.remote(DriftMqttInterface(isServer: false));
+
+  @override
+  FutureOr<void> setupServer() {
+    serverClient = MqttServerClient.withPort(
+        '127.0.0.1', 'drift_test_server', 1883);
+    serverClient.connectionMessage ??= MqttConnectMessage();
+    serverClient.connectionMessage =
+        serverClient.connectionMessage!.startClean();
+    serverClient.logging(on: false);
+    serverClient.keepAlivePeriod = 30;
+    serverClient.setProtocolV311();
+    Future.sync(_initializeServer);
   }
 
 }
