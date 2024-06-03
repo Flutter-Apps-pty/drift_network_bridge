@@ -4,12 +4,9 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/error_handling/error_or.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
-import 'package:drift_network_bridge/src/drift_bridge_server.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
-import 'package:stream_channel/stream_channel.dart';
-import 'package:typed_data/src/typed_buffer.dart';
-import 'package:uuid/data.dart';
+import 'package:typed_data/typed_data.dart';
 import 'package:uuid/v8.dart';
 
 extension on MqttServerClient {
@@ -33,12 +30,14 @@ extension on SubscriptionTopic {
 
 class DriftMqttInterface extends DriftBridgeInterface {
   late MqttServerClient serverClient;
-  final String _topic = 'drift_test_server';
-  Completer _promiseToClose = Completer();
+  final Completer _promiseToClose = Completer();
+  final String host;
+  final int port;
+  final String name;
 
-  DriftMqttInterface({super.isServer = true});
-  SubscriptionTopic get sIncomingTopic => SubscriptionTopic('$_topic/stream/#');
-  PublicationTopic get pIncomingTopic => PublicationTopic('$_topic/stream');
+  DriftMqttInterface({required this.host, this.port = 1883, this.name = 'drift_bridge', super.isServer = true});
+  SubscriptionTopic get sIncomingTopic => SubscriptionTopic('$name/stream/#');
+  PublicationTopic get pIncomingTopic => PublicationTopic('$name/stream');
   final StreamController<DriftBridgeClient> _incomingConnections = StreamController.broadcast();
 
   Future<ErrorOr<void>> _initializeServer() async {
@@ -46,23 +45,26 @@ class DriftMqttInterface extends DriftBridgeInterface {
       await serverClient.connect();
       serverClient.subscribe(sIncomingTopic.rawTopic, MqttQos.exactlyOnce);
       _promiseToClose.future.then((_) {
-        serverClient.disconnect();
+        Future.delayed(const Duration(seconds: 1), () {
+          serverClient.disconnect();
+        });
       });
       serverClient.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) async {
         ///create new clients for each incoming connection
         for (var message in messages) {
           final payload = MqttPublishPayload.bytesToStringAsString(
               ((message.payload) as MqttPublishMessage).payload.message);
-          if(sIncomingTopic.safeMatch(PublicationTopic(message.topic)) && !payload.contains('ok')){
+          if(sIncomingTopic.safeMatch(PublicationTopic(message.topic))){
+            if(payload.contains('ok')) return;
             final newClient = DriftMqttClient(MqttServerClient.withPort(
-                '127.0.0.1', 'server-$payload', 1883),isClient: false);
+                host, 'server-$payload', port),name,isClient: false);
             newClient.session = payload;
             await newClient.connect();
             _incomingConnections.add(newClient);
             serverClient.publishString('${pIncomingTopic.rawTopic}/$payload', 'ok');
           }
           else{
-            print('Discarding message from ${message.topic}');
+            print('Discarding message from ${message.topic} : $payload');
           }
         }
       });
@@ -91,10 +93,11 @@ class DriftMqttInterface extends DriftBridgeInterface {
   Future<DriftBridgeClient> connect() async {
     final session = UuidV8().generate();
     DriftMqttClient client = DriftMqttClient(MqttServerClient.withPort(
-        '127.0.0.1', 'client-$session', 1883));
+        host, 'client-$session', port),name);
     client.session = session;
     await client.connect();
-    client.subscribe('${pIncomingTopic.rawTopic}/$session', MqttQos.exactlyOnce);
+    client.subscribe('$name/$session', MqttQos.exactlyOnce);
+    /// notify server of new client session
     client.publishString('${pIncomingTopic.rawTopic}/$session', session);
     return client;
   }
@@ -104,47 +107,47 @@ class DriftMqttInterface extends DriftBridgeInterface {
   Stream<DriftBridgeClient> get incomingConnections =>
       _incomingConnections.stream;
 
-  static DatabaseConnection remote() =>
-      DriftBridgeInterface.remote(DriftMqttInterface(isServer: false));
+  static DatabaseConnection remote({
+    required String host,
+    int port = 1883,
+    String name = 'drift_bridge',
+  }) =>
+      DriftBridgeInterface.remote(DriftMqttInterface(host: host, port: port,name: name, isServer: false));
 
   @override
   FutureOr<void> setupServer() {
     serverClient = MqttServerClient.withPort(
-        '127.0.0.1', 'drift_test_server', 1883);
+        host, name, port);
     serverClient.connectionMessage ??= MqttConnectMessage();
     serverClient.connectionMessage =
         serverClient.connectionMessage!.startClean();
     serverClient.logging(on: false);
     serverClient.keepAlivePeriod = 30;
     serverClient.setProtocolV311();
+    // serverClient.autoReconnect = true;
+    // serverClient.resubscribeOnAutoReconnect = true;
     Future.sync(_initializeServer);
   }
-
 }
 
 class DriftMqttClient extends DriftBridgeClient {
   final MqttServerClient client;
-  final String _topic = 'drift_test_server';
+  final String _name;
   final bool isClient;
-  PublicationTopic get pIncomingTopic => PublicationTopic('$_topic/stream/$session');
-  SubscriptionTopic get sDataTopic => isClient?SubscriptionTopic('$_topic/stream/$session/client'):SubscriptionTopic('$_topic/stream/$session/host');
-  PublicationTopic get pDataTopic => isClient?PublicationTopic('$_topic/stream/$session/host'):PublicationTopic('$_topic/stream/$session/client');
-  // SubscriptionTopic get sTopic => SubscriptionTopic(_counterpartTopic);
-  // SubscriptionTopic get sCloseTopic => SubscriptionTopic('$_counterpartTopic/close');
-  // SubscriptionTopic get sErrorTopic => SubscriptionTopic('$_counterpartTopic/error');
-  //
-  //
-  // PublicationTopic get pTopic => PublicationTopic('$_topic/stream/${client.clientIdentifier}');
-  // PublicationTopic get pCloseTopic => PublicationTopic('$_topic/close');
-  // PublicationTopic get pErrorTopic => PublicationTopic('$_topic/error');
+  PublicationTopic get pIncomingTopic => PublicationTopic('$_name/stream/$session');
+  SubscriptionTopic get sDataTopic => isClient?SubscriptionTopic('$_name/$session/client'):SubscriptionTopic('$_name/$session/host');
+  PublicationTopic get pDataTopic => isClient?PublicationTopic('$_name/$session/host'):PublicationTopic('$_name/$session/client');
+
   String session = '';
   bool sessionReady = false;
-  DriftMqttClient(this.client,{this.isClient = true}){
+  DriftMqttClient(this.client,this._name,{this.isClient = true}){
     client.connectionMessage ??= MqttConnectMessage();
     client.connectionMessage = client.connectionMessage!.startClean();
     client.logging(on: false);
     client.keepAlivePeriod = 30;
     client.setProtocolV311();
+    // client.autoReconnect = true;
+    // client.resubscribeOnAutoReconnect = true;
     client.onConnected = () {
       client.subscribe(sDataTopic.rawTopic, MqttQos.exactlyOnce);
     };
@@ -184,6 +187,7 @@ class DriftMqttClient extends DriftBridgeClient {
           onData(data);
         }
         else {
+          print('Discarding message from ${message.topic} : $payload');
           print('should not be here');
         }
       }

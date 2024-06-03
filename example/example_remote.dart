@@ -1,12 +1,28 @@
-import 'package:drift_network_bridge/drift_network_bridge.dart';
+import 'dart:io';
+
+import 'package:drift_network_bridge/src/bridge/interfaces/drift_mqtt_interface.dart';
+import 'package:drift_network_bridge/src/bridge/interfaces/drift_tcp_interface.dart';
 
 import '../test/integration_tests/drift_testcases/tests.dart';
+import '../test/original/test_utils/database_vm.dart';
 
 Future<void> main() async {
-  final gw = MqttDatabaseGateway('127.0.0.1', 'unit_device', 'drift/test_site');
-  final remoteDb = Database(await gw.createNetworkConnection());
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  preferLocalSqlite3();
+
+  final tcpDb = Database(DriftTcpInterface.remote(ipAddress: InternetAddress.loopbackIPv4, port: 4040));
+  final mqttDb = Database(DriftMqttInterface.remote(host: 'test.mosquitto.org', name: 'unit_device'));
+
   try {
-    final test = await remoteDb.users.all().get();
+    final test = await tcpDb.users.all().get();
+    print(test);
+  }
+  catch(e,stacktrace){
+    print(e);
+    print(stacktrace);
+  }
+  try {
+    final test = await mqttDb.users.all().get();
     print(test);
   }
   catch(e,stacktrace){

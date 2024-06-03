@@ -7,12 +7,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
-import 'package:drift/isolate.dart';
 import 'package:drift/native.dart';
-import 'package:drift/remote.dart';
-import 'package:drift_network_bridge/implementation/mqtt/mqtt_database_gateway.dart';
-import 'package:drift_network_bridge/src/bridge/interfaces/DriftMqttInterface.dart';
-import 'package:drift_network_bridge/src/bridge/interfaces/DriftTcpInterface.dart';
+import 'package:drift_network_bridge/src/bridge/interfaces/drift_mqtt_interface.dart';
+import 'package:drift_network_bridge/src/bridge/interfaces/drift_tcp_interface.dart';
 import 'package:drift_network_bridge/src/drift_bridge_server.dart';
 import 'package:path/path.dart';
 import 'integration_tests/drift_testcases/database/database.dart';
@@ -23,7 +20,7 @@ import 'integration_tests/drift_testcases/suite/custom_objects.dart';
 import 'integration_tests/drift_testcases/suite/migrations.dart';
 import 'integration_tests/drift_testcases/suite/suite.dart';
 import 'integration_tests/drift_testcases/suite/transactions.dart';
-import 'orginal/test_utils/database_vm.dart';
+import 'original/test_utils/database_vm.dart';
 // import 'database/database.dart';
 
 abstract class BaseExecutor extends TestExecutor {
@@ -66,20 +63,6 @@ abstract class BaseExecutor extends TestExecutor {
   }
 }
 
-class NbExecutor extends BaseExecutor {
-  final MqttDatabaseGateway gw;
-
-  NbExecutor(this.gw) : super();
-
-  @override
-  DatabaseConnection createConnection() {
-    return DatabaseConnection.delayed(Future.sync(() async {
-      final connection = gw.createConnection();
-      await connection.connect();
-      return await connectToRemoteAndInitialize(connection);
-    }));
-  }
-}
 
 class TCPExecutor extends BaseExecutor {
   TCPExecutor() : super();
@@ -87,12 +70,9 @@ class TCPExecutor extends BaseExecutor {
   @override
   DatabaseConnection createConnection() {
     Database(DatabaseConnection(NativeDatabase(file, logStatements: true)))
-        .networkConnection(DriftTcpInterface());
-    final connection = DatabaseConnection.delayed(Future.sync(() async {
-      return await DriftTcpInterface.remote();
-    }));
+        .host(DriftTcpInterface(),onlyAcceptSingleConnection: true);
 
-    return connection;
+    return DriftTcpInterface.remote(ipAddress: InternetAddress.loopbackIPv4, port: 4040);
   }
 }
 
@@ -102,39 +82,44 @@ class MqttExecutor extends BaseExecutor {
   @override
   DatabaseConnection createConnection() {
     Database(DatabaseConnection(NativeDatabase(file, logStatements: true)))
-        .networkConnection(DriftMqttInterface());
-    final connection = DatabaseConnection.delayed(Future.sync(() async {
-      return await DriftMqttInterface.remote();
-    }));
-
-    return connection;
+        .host(DriftMqttInterface(host: '127.0.0.1'),onlyAcceptSingleConnection: true);
+    return DriftMqttInterface.remote(host: '127.0.0.1');
   }
 }
+
+class DualTcpExecutor extends BaseExecutor {
+  DualTcpExecutor() : super();
+
+  @override
+  DatabaseConnection createConnection() {
+    Database(DatabaseConnection(NativeDatabase(file, logStatements: true)))
+        .hostAll([DriftTcpInterface(ipAddress: InternetAddress.anyIPv4,port: 4040),DriftMqttInterface(host: 'test.mosquitto.org')],onlyAcceptSingleConnection: true);
+    return DriftTcpInterface.remote(ipAddress: InternetAddress.loopbackIPv4, port: 4040);
+  }
+}
+
+class DualMqttExecutor extends BaseExecutor {
+  DualMqttExecutor() : super();
+
+  @override
+  DatabaseConnection createConnection() {
+    Database(DatabaseConnection(NativeDatabase(file, logStatements: true)))
+        .hostAll([DriftTcpInterface(ipAddress: InternetAddress.anyIPv4,port: 4040),DriftMqttInterface(host: '127.0.0.1')],onlyAcceptSingleConnection: true);
+    return DriftMqttInterface.remote(host: '127.0.0.1');
+  }
+}
+
 
 Future<void> main() async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   preferLocalSqlite3();
-  final Directory tempDir = Directory(join(Directory.current.path, 'temp'));
-  if (await tempDir.exists()) {
-    await tempDir.delete(recursive: true);
+  if (!await BaseExecutor.tempDir.exists()) {
+    await BaseExecutor.tempDir.create(recursive: true);
   }
-
-  // final gate = MqttDatabaseGateway('127.0.0.1', 'unit_device', 'drift/test_site');
-  // await gate.serve(Database(DatabaseConnection(NativeDatabase.memory(logStatements: true))));
-  // await gate.isReady;
-
-  // runAllTests(NbExecutor(gate));
   runAllTests(TCPExecutor());
   runAllTests(MqttExecutor());
-  // final db = Database(DatabaseConnection(NativeDatabase.memory(logStatements: true,)));
-  // final gate = MqttDatabaseGateway('127.0.0.1', 'unit_device', 'drift/test_site',);
-
-  // gate.serve(db);
-  // await gate.isReady;
-  // await Future.delayed(Duration(seconds: 5));
-  // final executer = NbExecutor(gate);
-  // runAllTests(TCPExecutor());
-  // runAllTests(MqttExecutor());
+  runAllTests(DualTcpExecutor());
+  runAllTests(DualMqttExecutor());
 
   test('can save and restore a database', () async {
     final mainFile =

@@ -4,47 +4,43 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
-import 'package:drift_network_bridge/src/drift_bridge_server.dart';
 
 class DriftTcpInterface extends DriftBridgeInterface {
   late ServerSocket server;
 
-  DriftTcpInterface({bool server = true}) {
-    if (server) {
-      Future.sync(_initializeServer);
-    }
-  }
+  final InternetAddress? ipAddress;
 
-  Future<void> _initializeServer() async {
-    server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 4040);
-  }
+  final int port;
+
+  DriftTcpInterface({this.ipAddress,this.port = 4040,super.isServer = true});
+
 
   @override
-  void close() {
-    server.close();
-  }
+  void close() => server.close();
+
 
   @override
-  void shutdown() {
-    close();
-  }
+  void shutdown() => close();
 
   @override
   Future<DriftBridgeClient> connect() async {
     return DriftTcpClient(
-        await Socket.connect(InternetAddress.loopbackIPv4, 4040));
+        await Socket.connect(ipAddress ?? InternetAddress.loopbackIPv4, port));
   }
 
-  static Future<DatabaseConnection> remote() async {
-    DriftBridgeServer server =
-        DriftBridgeServer(DriftTcpInterface(server: false));
-    return server.connect();
-  }
+  static DatabaseConnection remote({required InternetAddress ipAddress,int port = 4040})  =>
+      DriftBridgeInterface.remote(DriftTcpInterface(ipAddress: ipAddress,port: port,isServer: false));
+
 
   @override
   Stream<DriftBridgeClient> get incomingConnections =>
       server.asBroadcastStream().transform(StreamTransformer.fromBind(
           (stream) => stream.map((socket) => DriftTcpClient(socket))));
+
+  @override
+  Future<void> setupServer() async {
+    server = await ServerSocket.bind(InternetAddress.anyIPv4, port);
+  }
 }
 
 class DriftTcpClient extends DriftBridgeClient {
@@ -59,6 +55,7 @@ class DriftTcpClient extends DriftBridgeClient {
 
   @override
   void send(Object? message) {
+    print('TCP: Sending $message');
     if (message is List) {
       socket.add(jsonEncode(message).codeUnits);
     } else if (message is String) {

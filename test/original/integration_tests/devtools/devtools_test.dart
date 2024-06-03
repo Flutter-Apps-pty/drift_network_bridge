@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:test/test.dart';
+// ignore: depend_on_referenced_packages
 import 'package:vm_service/vm_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:vm_service/vm_service_io.dart';

@@ -31,7 +31,7 @@ abstract class DriftNetworkServer implements DriftServer {
   /// If [closeConnectionAfterShutdown] is set to `true` (the default), shutting
   /// down the server will also close the [connection].
   factory DriftNetworkServer(QueryExecutor connection,
-      {bool allowRemoteShutdown = false,
+      {bool allowRemoteShutdown = true,
       bool closeConnectionAfterShutdown = true}) {
     return ServerNetworkImplementation(
         connection, allowRemoteShutdown, closeConnectionAfterShutdown);

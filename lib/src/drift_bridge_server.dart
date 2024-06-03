@@ -5,24 +5,16 @@ library drift_network_bridge;
 
 import 'dart:async';
 
+import 'package:drift/drift.dart';
 import 'package:drift/remote.dart';
+import 'package:drift_network_bridge/drift_network_bridge.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
-
-// ignore: implementation_imports
-import 'package:drift/src/runtime/api/runtime_api.dart';
-// ignore: implementation_imports
-import 'package:drift/src/runtime/executor/executor.dart';
-// ignore: implementation_imports
-import 'package:drift/src/runtime/executor/stream_queries.dart';
-// ignore: implementation_imports
-import 'package:drift/src/runtime/query_builder/query_builder.dart';
-// ignore: implementation_imports
-import 'package:drift/src/runtime/cancellation_zone.dart';
 // ignore: implementation_imports
 import 'package:drift/src/remote/protocol.dart';
 
 import 'bridge/interfaces/base/drift_bridge_interface.dart';
+import 'bridge/interfaces/drift_dual_interface.dart';
 import 'bridge/network_bridge_server.dart';
 
 
@@ -60,6 +52,7 @@ class DriftBridgeServer {
   /// and the clients should be serialized.
   final bool serialize;
 
+  final NetworkDriftServer? server;
   /// Creates a [DriftBridgeServer] talking to clients by using the
   /// [DriftBridgeInterface].
   ///
@@ -75,10 +68,10 @@ class DriftBridgeServer {
   /// In most scenarios, [serialize] can be disabled for a considerable
   /// performance improvement.
   /// {@endtemplate}
-  DriftBridgeServer(this.networkInterface, {this.serialize = true});
+  DriftBridgeServer(this.networkInterface, {this.serialize = true, this.server});
 
   Future<StreamChannel> _open() {
-    return connectToServer(networkInterface, serialize);
+    return remoteConnectToServer(networkInterface, serialize);
   }
 
   /// Connects to this [DriftBridgeServer] from a client.
@@ -99,7 +92,7 @@ class DriftBridgeServer {
     bool serverDebugLog = false,
     bool singleClientMode = false,
   }) async {
-    final connection = await connectToRemoteAndInitialize(
+    final connection = await connectToNetworkAndInitialize(
       await _open(),
       debugLog: serverDebugLog,
       serialize: serialize,
@@ -132,15 +125,28 @@ class DriftBridgeServer {
         bool serialize = false,
         required DriftBridgeInterface networkInterface,
       }) async {
-    final server = NetworkDriftServer(networkInterface, opener(),
+    NetworkDriftServer(networkInterface, opener(),
         killServerWhenDone: false);
-    return DriftBridgeServer(server.networkInterface, serialize: serialize);
+
+    return DriftBridgeServer(networkInterface, serialize: serialize);
   }
+
+  @visibleForTesting
+  // ignore: invalid_use_of_visible_for_testing_member
+  void simulateNetworkFailure() => server?.simulateNetworkFailure();
+
+  @visibleForTesting
+  // ignore: invalid_use_of_visible_for_testing_member
+  void simulateNetworkRecovery() => server?.simulateNetworkRecovery();
 }
 
 /// Experimental methods to connect to an existing drift database from different
 /// clients over a network.
 extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser> on DB {
+  @experimental
+  Future<DriftBridgeServer> hostAll(List<DriftBridgeInterface> networkInterfaces, {bool onlyAcceptSingleConnection = false}) async {
+    return host(DriftMultipleInterface(networkInterfaces),onlyAcceptSingleConnection: onlyAcceptSingleConnection);
+  }
   /// Creates a [DriftBridgeServer] that, when connected to, will run queries on the
   /// database already opened by `this`.
   ///
@@ -165,19 +171,17 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser> on DB 
   /// The example of running a short-lived server for a single task unit
   /// requiring a database is also available through [networkWithDatabase].
   @experimental
-  Future<DriftBridgeServer> networkConnection(DriftBridgeInterface networkInterface) async {
-    final currentlyInRootConnection = resolvedEngine is GeneratedDatabase;
+  Future<DriftBridgeServer> host(DriftBridgeInterface networkInterface, {bool onlyAcceptSingleConnection = false}) async {
     // ignore: invalid_use_of_protected_member
     final localConnection = resolvedEngine.connection;
-    final data = await localConnection.connectionData;
 
     // Set up a drift server acting as a proxy to the existing database
     // connection.
     final server = NetworkDriftServer(
       networkInterface,
       localConnection,
-      onlyAcceptSingleConnection: true,
-      closeConnectionAfterShutdown: false,
+      onlyAcceptSingleConnection: onlyAcceptSingleConnection,
+      closeConnectionAfterShutdown: true,
       killServerWhenDone: false,
     );
 
@@ -198,7 +202,8 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser> on DB 
 
     return DriftBridgeServer(
       networkInterface,
-      serialize: true, //todo we have to ensure that it uses the same as teh
+      serialize: true,
+      server: server,
     );
   }
   /// Creates a short-lived server to run the [computation] with a drift
@@ -255,7 +260,7 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser> on DB 
     required DB Function(DatabaseConnection) connect,
     required DriftBridgeInterface networkInterface,
   }) async {
-    final server = await networkConnection(networkInterface);
+    final server = await host(networkInterface);
 
     final database = connect(await server.connect());
     try {

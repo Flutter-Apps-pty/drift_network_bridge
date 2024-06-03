@@ -1,19 +1,32 @@
 
 import 'dart:async';
-import 'dart:io';
-
-import 'package:drift_network_bridge/src/network_remote/network_client_impl.dart';
+import 'package:drift/drift.dart';
+import '../../../drift_bridge_server.dart';
 
 
 
 abstract class DriftBridgeInterface{
+  final bool isServer;
+
+  DriftBridgeInterface({this.isServer = true}){
+    if(isServer){
+      setupServer();
+    }
+  }
+
   Stream <DriftBridgeClient> get incomingConnections;
-
   void close();
-
   void shutdown();
-
   FutureOr<DriftBridgeClient> connect();
+  FutureOr<void> setupServer();
+
+  static DatabaseConnection remote(DriftBridgeInterface interface)  {
+    DriftBridgeServer server = DriftBridgeServer(interface);
+
+    return DatabaseConnection.delayed(Future.sync(() async {
+      return await server.connect();
+    }));
+  }
 }
 
 abstract class DriftBridgeClient {
@@ -22,4 +35,5 @@ abstract class DriftBridgeClient {
   void close();
 
   void send(Object? message);
+
 }

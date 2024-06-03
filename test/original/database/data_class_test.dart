@@ -107,7 +107,7 @@ void main() {
 
   test('utilities to wrap nullable values', () {
     expect(
-        // ignore: prefer_const_constructors, deprecated_member_use_from_same_package
+        // ignore: prefer_const_constructors, deprecated_member_use_from_same_package, deprecated_member_use
         () => Value<int?>.ofNullable(null),
         throwsA(isA<AssertionError>()));
 
