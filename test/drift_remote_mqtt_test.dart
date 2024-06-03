@@ -8,7 +8,6 @@ import 'package:drift_network_bridge/src/bridge/interfaces/drift_tcp_interface.d
 import 'package:drift_network_bridge/src/drift_bridge_server.dart';
 import 'package:drift_network_bridge/src/network_remote/network_communication.dart';
 
-import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart';
 import 'integration_tests/drift_testcases/database/database.dart';
 import 'original/test_utils/database_vm.dart';
@@ -66,20 +65,4 @@ void main() {
       throwsA(isA<TimeoutException>()),
     );
   });
-}
-
-
-// ignore: unused_element
-void _checkSimple(Object? object) {
-  if (object is String || object is num || object is bool || object == null) {
-    // fine, these objects are allowed
-  } else if (object is List) {
-    // lists of simple objects are allowed too
-    object.forEach(_checkSimple);
-  } else {
-    fail('Invalid message over wire: $object');
-  }
-}
-
-extension<T> on StreamChannel<T> {
 }
