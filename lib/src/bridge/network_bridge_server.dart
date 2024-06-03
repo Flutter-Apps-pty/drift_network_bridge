@@ -61,46 +61,47 @@ class NetworkDriftServer {
     closeConnectionAfterShutdown: closeConnectionAfterShutdown,
   ) {
     /// host listening for incoming connections first connect is TCP, second is MQTT so its serves both
-    final subscription = networkInterface.incomingConnections.listen((incomingConnection) {
-      if (onlyAcceptSingleConnection) {
-        networkInterface.close();
-      }
-
-      final controller = StreamChannelController<Object?>(
-          allowForeignErrors: false, sync: true);
-      incomingConnection.listen((message) {
-        if(dontReply) return;
-        if (message == disconnectMessage) {
-          // Client closed the connection
-          controller.local.sink.close();
-
-          if (onlyAcceptSingleConnection) {
-            // The only connection was closed, so shut down the server.
-            server.shutdown();
-          }
-        } else {
-          controller.local.sink.add(message);
+    (networkInterface.setupServer() as Future<void>).then((_) {
+      final subscription = networkInterface.incomingConnections.listen((incomingConnection) {
+        if (onlyAcceptSingleConnection) {
+          networkInterface.close();
         }
-      }, onDone: () {
-        // Connection closed by the client
-        controller.local.sink.close();
+
+        final controller = StreamChannelController<Object?>(
+            allowForeignErrors: false, sync: true);
+        incomingConnection.listen((message) {
+          if(dontReply) return;
+          if (message == disconnectMessage) {
+            // Client closed the connection
+            controller.local.sink.close();
+
+            if (onlyAcceptSingleConnection) {
+              // The only connection was closed, so shut down the server.
+              server.shutdown();
+            }
+          } else {
+            controller.local.sink.add(message);
+          }
+        }, onDone: () {
+          // Connection closed by the client
+          controller.local.sink.close();
+        });
+
+        controller.local.stream.listen((message) {
+          incomingConnection.send(message);//replying to incoming connection
+        }, onDone: () {
+          // Closed locally - notify the client about this.
+          incomingConnection.send(disconnectMessage);
+          connection.close();
+        });
+
+        server.serve(controller.foreign, serialize: true);
       });
-
-      controller.local.stream.listen((message) {
-        incomingConnection.send(message);//replying to incoming connection
-      }, onDone: () {
-        // Closed locally - notify the client about this.
-        incomingConnection.send(disconnectMessage);
-        connection.close();
+      server.done.then((_) {
+        subscription.cancel();
+        networkInterface.close();
+        if (killServerWhenDone) networkInterface.shutdown();
       });
-
-      server.serve(controller.foreign, serialize: true);
-    });
-
-    server.done.then((_) {
-      subscription.cancel();
-      networkInterface.close();
-      if (killServerWhenDone) networkInterface.shutdown();
     });
   }
 

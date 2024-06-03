@@ -35,7 +35,7 @@ class DriftMqttInterface extends DriftBridgeInterface {
   final int port;
   final String name;
 
-  DriftMqttInterface({required this.host, this.port = 1883, this.name = 'drift_bridge', super.isServer = true});
+  DriftMqttInterface({required this.host, this.port = 1883, this.name = 'drift_bridge'});
   SubscriptionTopic get sIncomingTopic => SubscriptionTopic('$name/stream/#');
   PublicationTopic get pIncomingTopic => PublicationTopic('$name/stream');
   final StreamController<DriftBridgeClient> _incomingConnections = StreamController.broadcast();
@@ -107,12 +107,13 @@ class DriftMqttInterface extends DriftBridgeInterface {
   Stream<DriftBridgeClient> get incomingConnections =>
       _incomingConnections.stream;
 
-  static DatabaseConnection remote({
+  static Future<ErrorOr<DatabaseConnection>> remote({
     required String host,
     int port = 1883,
     String name = 'drift_bridge',
+    void Function(Object error)? onConnectionError,
   }) =>
-      DriftBridgeInterface.remote(DriftMqttInterface(host: host, port: port,name: name, isServer: false));
+      DriftBridgeInterface.remote(DriftMqttInterface(host: host, port: port,name: name));
 
   @override
   FutureOr<void> setupServer() {
@@ -126,7 +127,7 @@ class DriftMqttInterface extends DriftBridgeInterface {
     serverClient.setProtocolV311();
     // serverClient.autoReconnect = true;
     // serverClient.resubscribeOnAutoReconnect = true;
-    Future.sync(_initializeServer);
+   return Future.sync(_initializeServer);
   }
 }
 

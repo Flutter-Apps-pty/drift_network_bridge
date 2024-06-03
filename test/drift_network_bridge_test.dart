@@ -3,6 +3,7 @@
 @TestOn('vm')
 @Timeout(Duration(seconds: 120))
 import 'dart:async';
+
 // ignore: unused_import
 import 'dart:io';
 
@@ -45,7 +46,8 @@ abstract class BaseExecutor extends TestExecutor {
     closedCompleter = Completer();
     for (var table in db.allTables) {
       await db.customStatement('DELETE FROM ${table.actualTableName}');
-      await db.customStatement('DELETE FROM sqlite_sequence WHERE name = "${table.actualTableName}"');
+      await db.customStatement(
+          'DELETE FROM sqlite_sequence WHERE name = "${table.actualTableName}"');
     }
     await db.transaction(() async {
       await db.batch((batch) {
@@ -63,16 +65,19 @@ abstract class BaseExecutor extends TestExecutor {
   }
 }
 
-
 class TCPExecutor extends BaseExecutor {
   TCPExecutor() : super();
 
   @override
   DatabaseConnection createConnection() {
     Database(DatabaseConnection(NativeDatabase(file, logStatements: true)))
-        .host(DriftTcpInterface(),onlyAcceptSingleConnection: true);
+        .host(DriftTcpInterface(), onlyAcceptSingleConnection: true);
+    return DatabaseConnection.delayed(_buildRemoteConnection());
+  }
 
-    return DriftTcpInterface.remote(ipAddress: InternetAddress.loopbackIPv4, port: 4040);
+  Future<DatabaseConnection> _buildRemoteConnection() async {
+    return (await DriftTcpInterface.remote(
+        ipAddress: InternetAddress.loopbackIPv4, port: 4040)).value!;
   }
 }
 
@@ -82,8 +87,13 @@ class MqttExecutor extends BaseExecutor {
   @override
   DatabaseConnection createConnection() {
     Database(DatabaseConnection(NativeDatabase(file, logStatements: true)))
-        .host(DriftMqttInterface(host: '127.0.0.1'),onlyAcceptSingleConnection: true);
-    return DriftMqttInterface.remote(host: '127.0.0.1');
+        .host(DriftMqttInterface(host: '127.0.0.1'),
+        onlyAcceptSingleConnection: true);
+    return DatabaseConnection.delayed(_buildRemoteConnection());
+  }
+
+  Future<DatabaseConnection> _buildRemoteConnection() async {
+    return (await DriftMqttInterface.remote(host: '127.0.0.1')).value!;
   }
 }
 
@@ -93,8 +103,15 @@ class DualTcpExecutor extends BaseExecutor {
   @override
   DatabaseConnection createConnection() {
     Database(DatabaseConnection(NativeDatabase(file, logStatements: true)))
-        .hostAll([DriftTcpInterface(ipAddress: InternetAddress.anyIPv4,port: 4040),DriftMqttInterface(host: 'test.mosquitto.org')],onlyAcceptSingleConnection: true);
-    return DriftTcpInterface.remote(ipAddress: InternetAddress.loopbackIPv4, port: 4040);
+        .hostAll([
+      DriftTcpInterface(ipAddress: InternetAddress.anyIPv4, port: 4040),
+      DriftMqttInterface(host: '127.0.0.1')
+    ], onlyAcceptSingleConnection: true);
+    return DatabaseConnection.delayed(_buildRemoteConnection());
+  }
+  Future<DatabaseConnection> _buildRemoteConnection() async {
+    return (await DriftTcpInterface.remote(
+        ipAddress: InternetAddress.loopbackIPv4, port: 4040)).value!;
   }
 }
 
@@ -104,11 +121,16 @@ class DualMqttExecutor extends BaseExecutor {
   @override
   DatabaseConnection createConnection() {
     Database(DatabaseConnection(NativeDatabase(file, logStatements: true)))
-        .hostAll([DriftTcpInterface(ipAddress: InternetAddress.anyIPv4,port: 4040),DriftMqttInterface(host: '127.0.0.1')],onlyAcceptSingleConnection: true);
-    return DriftMqttInterface.remote(host: '127.0.0.1');
+        .hostAll([
+      DriftTcpInterface(ipAddress: InternetAddress.anyIPv4, port: 4040),
+      DriftMqttInterface(host: '127.0.0.1')
+    ], onlyAcceptSingleConnection: true);
+    return DatabaseConnection.delayed(_buildRemoteConnection());
+  }
+  Future<DatabaseConnection> _buildRemoteConnection() async {
+    return (await DriftMqttInterface.remote(host: '127.0.0.1')).value!;
   }
 }
-
 
 Future<void> main() async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -122,10 +144,10 @@ Future<void> main() async {
   runAllTests(DualMqttExecutor());
 
   test('can save and restore a database', () async {
-    final mainFile =
-    File(join(join(Directory.current.path,'temp'), 'drift-save-and-restore-tests-1'));
-    final createdForSwap =
-    File(join(join(Directory.current.path,'temp'), 'drift-save-and-restore-tests-2'));
+    final mainFile = File(join(join(Directory.current.path, 'temp'),
+        'drift-save-and-restore-tests-1'));
+    final createdForSwap = File(join(join(Directory.current.path, 'temp'),
+        'drift-save-and-restore-tests-2'));
 
     if (await mainFile.exists()) {
       await mainFile.delete();
@@ -163,6 +185,7 @@ Future<void> main() async {
     );
   });
 }
+
 void runAllTests(TestExecutor executor) {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 

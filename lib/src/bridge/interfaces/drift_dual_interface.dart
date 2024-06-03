@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
 
+// ignore: missing_override_of_must_be_overridden
 class DriftMultipleInterface extends DriftBridgeInterface {
   final List<DriftBridgeInterface> interfaces;
 
@@ -35,9 +36,13 @@ class DriftMultipleInterface extends DriftBridgeInterface {
       StreamGroup.merge(interfaces.map((e) => e.incomingConnections));
 
   @override
-  FutureOr<void> setupServer() {
-    // This is handled by the primary and secondary interfaces
+  FutureOr<void> setupServer() async {
+    for (var interface in interfaces) {
+      await interface.setupServer();
+    }
+    return Future.value();
   }
+
 }
 
 class _DriftMultipleClient extends DriftBridgeClient {

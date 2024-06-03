@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
+import 'package:drift_network_bridge/error_handling/error_or.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
 
 class DriftTcpInterface extends DriftBridgeInterface {
@@ -12,12 +13,10 @@ class DriftTcpInterface extends DriftBridgeInterface {
 
   final int port;
 
-  DriftTcpInterface({this.ipAddress,this.port = 4040,super.isServer = true});
-
+  DriftTcpInterface({this.ipAddress, this.port = 4040});
 
   @override
   void close() => server.close();
-
 
   @override
   void shutdown() => close();
@@ -28,9 +27,10 @@ class DriftTcpInterface extends DriftBridgeInterface {
         await Socket.connect(ipAddress ?? InternetAddress.loopbackIPv4, port));
   }
 
-  static DatabaseConnection remote({required InternetAddress ipAddress,int port = 4040})  =>
-      DriftBridgeInterface.remote(DriftTcpInterface(ipAddress: ipAddress,port: port,isServer: false));
-
+  static Future<ErrorOr<DatabaseConnection>> remote(
+          {required InternetAddress ipAddress, int port = 4040}) =>
+      DriftBridgeInterface.remote(
+          DriftTcpInterface(ipAddress: ipAddress, port: port));
 
   @override
   Stream<DriftBridgeClient> get incomingConnections =>
@@ -39,7 +39,8 @@ class DriftTcpInterface extends DriftBridgeInterface {
 
   @override
   Future<void> setupServer() async {
-    server = await ServerSocket.bind(InternetAddress.anyIPv4, port);
+    server =
+        await ServerSocket.bind(InternetAddress.anyIPv4, port, shared: true);
   }
 }
 

@@ -8,6 +8,8 @@ import 'dart:async';
 import 'package:drift/drift.dart';
 import 'package:drift/remote.dart';
 import 'package:drift_network_bridge/drift_network_bridge.dart';
+import 'package:drift_network_bridge/error_handling/error_or.dart';
+import 'package:drift_network_bridge/src/network_remote/network_communication.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
 // ignore: implementation_imports
@@ -88,19 +90,25 @@ class DriftBridgeServer {
   ///
   /// Setting the [serverDebugLog] is only helpful when debugging drift itself.
   /// It will print messages exchanged between the client and the server.
-  Future<DatabaseConnection> connect({
+  Future<ErrorOr<DatabaseConnection>> connect({
     bool serverDebugLog = false,
     bool singleClientMode = false,
   }) async {
-    final connection = await connectToNetworkAndInitialize(
-      await _open(),
-      debugLog: serverDebugLog,
-      serialize: serialize,
-      singleClientMode: singleClientMode,
-    );
-
-    return DatabaseConnection(connection.executor,
-        streamQueries: connection.streamQueries, connectionData: this);
+    try{
+      final connection = await connectToNetworkAndInitialize(
+        await _open(),
+        debugLog: serverDebugLog,
+        serialize: serialize,
+        singleClientMode: singleClientMode,
+      ).timeout(DriftNetworkCommunication.timeout,onTimeout: (){
+        throw TimeoutException('Connection to server timed out');
+      });
+      return ErrorOr.value(DatabaseConnection(connection.executor,
+          streamQueries: connection.streamQueries, connectionData: this));
+    }
+    catch(e){
+      return ErrorOr.error(e);
+    }
   }
 
   /// Stops the server and disconnects all [DatabaseConnection]s created.
@@ -261,8 +269,11 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser> on DB 
     required DriftBridgeInterface networkInterface,
   }) async {
     final server = await host(networkInterface);
-
-    final database = connect(await server.connect());
+    final connResult = await server.connect();
+    if (connResult.isError) {
+      throw connResult.error!;
+    }
+    final database = connect(connResult.value!);
     try {
       return await computation(database);
     } finally {

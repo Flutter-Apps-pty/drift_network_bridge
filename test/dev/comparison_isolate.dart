@@ -51,8 +51,11 @@ Future<void> main() async {
     final db = Database(connection);
 
     final server = await db.host(DriftTcpInterface());
-
-    final client = Database(await server.connect());
+    final connRslt = await server.connect();
+    if(connRslt.isError) {
+      throw connRslt.error!;
+    }
+    final client = Database(connRslt.value!);
     final user = await client.getUserById(1);
     expect(user, User(
       id: 1,
@@ -67,7 +70,8 @@ Future<void> main() async {
     final connection = DatabaseConnection(NativeDatabase.memory(logStatements: true));
     final db = Database(connection);
     await db.host(DriftTcpInterface(ipAddress: InternetAddress.anyIPv4, port: 4040));
-    final remote = Database(DriftTcpInterface.remote(ipAddress: InternetAddress.loopbackIPv4, port: 4040));
+    final remoteConnection = await DriftTcpInterface.remote(ipAddress: InternetAddress.loopbackIPv4, port: 4040);
+    final remote = Database(remoteConnection.value!);
     final user = await remote.getUserById(1);
     expect(user, User(
       id: 1,
@@ -108,8 +112,11 @@ Future<void> main() async {
     final db = Database(connection);
 
     final server = await db.host(DriftMqttInterface(host: 'test.mosquitto.org', name: 'unit_device'));
-
-    final client = Database(await server.connect());
+    final connRslt = await server.connect();
+    if(connRslt.isError) {
+      throw connRslt.error!;
+    }
+    final client = Database(connRslt.value!);
     final user = await client.getUserById(1);
     expect(user, User(
       id: 1,
@@ -124,7 +131,8 @@ Future<void> main() async {
     final connection = DatabaseConnection(NativeDatabase.memory(logStatements: true));
     final db = Database(connection);
     await db.host(DriftMqttInterface(host: 'test.mosquitto.org', name: 'unit_device'));
-    final remote = Database(DriftMqttInterface.remote(host: 'test.mosquitto.org', name: 'unit_device'));
+    final remoteConnection = await DriftMqttInterface.remote(host: 'test.mosquitto.org', name: 'unit_device');
+    final remote = Database(remoteConnection.value!);
     final user = await remote.getUserById(1);
     expect(user, User(
       id: 1,

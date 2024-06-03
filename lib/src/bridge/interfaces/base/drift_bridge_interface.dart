@@ -1,31 +1,25 @@
 
 import 'dart:async';
 import 'package:drift/drift.dart';
+import 'package:drift_network_bridge/error_handling/error_or.dart';
 import '../../../drift_bridge_server.dart';
 
 
 
 abstract class DriftBridgeInterface{
-  final bool isServer;
-
-  DriftBridgeInterface({this.isServer = true}){
-    if(isServer){
-      setupServer();
-    }
-  }
-
   Stream <DriftBridgeClient> get incomingConnections;
   void close();
   void shutdown();
   FutureOr<DriftBridgeClient> connect();
   FutureOr<void> setupServer();
 
-  static DatabaseConnection remote(DriftBridgeInterface interface)  {
+  static Future<ErrorOr<DatabaseConnection>> remote(DriftBridgeInterface interface)  async {
     DriftBridgeServer server = DriftBridgeServer(interface);
-
-    return DatabaseConnection.delayed(Future.sync(() async {
-      return await server.connect();
-    }));
+    final connRslt = await server.connect();
+    if(connRslt.isValue){
+      return ErrorOr.value(connRslt.value!);
+    }
+    return ErrorOr.error(connRslt.error!);
   }
 }
 
