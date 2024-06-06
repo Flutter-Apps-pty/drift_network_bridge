@@ -13,16 +13,23 @@ import 'integration_tests/drift_testcases/database/database.dart';
 import 'original/test_utils/database_vm.dart';
 
 void main() {
-  setUpAll((){
+  setUpAll(() {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   });
 
   test('recover from half connection', () async {
     DriftNetworkCommunication.timeout = const Duration(seconds: 5);
-    final server = await Database(DatabaseConnection(testInMemoryDatabase())).hostAll([DriftTcpInterface(),
-      DriftMqttInterface(host: '127.0.0.1', name: 'unit_device')],onlyAcceptSingleConnection: false);
-    final tcpConnection = (await DriftTcpInterface.remote(ipAddress: InternetAddress.loopbackIPv4, port: 4040)).value!;
-    final mqttConnection = (await DriftMqttInterface.remote(host: '127.0.0.1', name: 'unit_device')).value!;
+    final server = await Database(DatabaseConnection(testInMemoryDatabase()))
+        .hostAll([
+      DriftTcpInterface(),
+      DriftMqttInterface(host: '127.0.0.1', name: 'unit_device')
+    ], onlyAcceptSingleConnection: false);
+    final tcpConnection = (await DriftTcpInterface.remote(
+            ipAddress: InternetAddress.loopbackIPv4, port: 4040))
+        .value!;
+    final mqttConnection = (await DriftMqttInterface.remote(
+            host: '127.0.0.1', name: 'unit_device'))
+        .value!;
     Database remoteTcpDb = Database(tcpConnection);
     Database remoteMqttDb = Database(mqttConnection);
 
@@ -45,23 +52,27 @@ void main() {
 
   test('Connection error test', () async {
     DriftNetworkCommunication.timeout = const Duration(seconds: 5);
-    await Database(DatabaseConnection(testInMemoryDatabase())).hostAll([DriftTcpInterface(),
-      DriftMqttInterface(host: '127.0.0.1', name: 'unit_device')],onlyAcceptSingleConnection: false);
+    await Database(DatabaseConnection(testInMemoryDatabase())).hostAll([
+      DriftTcpInterface(),
+      DriftMqttInterface(host: '127.0.0.1', name: 'unit_device')
+    ], onlyAcceptSingleConnection: false);
 
     // Expect a SocketException when trying to connect to the remote TCP database with an incorrect port
     expect(
-          () async => (await DriftTcpInterface.remote(
+      () async => (await DriftTcpInterface.remote(
         ipAddress: InternetAddress.loopbackIPv4,
         port: 4041,
-      )).valueOrThrow,
+      ))
+          .valueOrThrow,
       throwsA(isA<SocketException>()),
     );
     // Expect a SocketException when trying to connect to the remote MQTT database with an incorrect name
     expect(
-          () async => (await DriftMqttInterface.remote(
+      () async => (await DriftMqttInterface.remote(
         host: '127.0.0.1',
         name: 'not_unit_device',
-      )).valueOrThrow,
+      ))
+          .valueOrThrow,
       throwsA(isA<TimeoutException>()),
     );
   });

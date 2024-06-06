@@ -10,6 +10,7 @@ import 'package:drift/src/runtime/cancellation_zone.dart';
 // ignore: implementation_imports
 import 'package:drift/src/remote/protocol.dart';
 import 'package:stack_trace/stack_trace.dart';
+
 /// Wrapper around a two-way communication channel to support requests and
 /// responses.
 @internal
@@ -102,7 +103,7 @@ class DriftNetworkCommunication {
 
       request?.completeWithError(const CancellationException());
     }
-    if(_pendingRequests.isEmpty){
+    if (_pendingRequests.isEmpty) {
       _watchdog.stop();
     }
   }
@@ -120,11 +121,14 @@ class DriftNetworkCommunication {
     timeout ??= DriftNetworkCommunication.timeout;
     _pendingRequests[id] = _PendingRequest(completer, StackTrace.current);
     _send(Request(id, request));
-    if(!_watchdog.isRunning){
-      _watchdog.start(timeout: timeout, onTimeout: (){
-        _pendingRequests[id]?.completeWithError(TimeoutException('Request timed out after $timeout', timeout));
-        _pendingRequests.remove(id); // Remove the pending request
-      });
+    if (!_watchdog.isRunning) {
+      _watchdog.start(
+          timeout: timeout,
+          onTimeout: () {
+            _pendingRequests[id]?.completeWithError(
+                TimeoutException('Request timed out after $timeout', timeout));
+            _pendingRequests.remove(id); // Remove the pending request
+          });
     }
 
     return completer.future;
@@ -205,9 +209,9 @@ class _PendingRequest {
         trace == null
             ? requestTrace
             : Chain([
-          if (trace is Chain) ...trace.traces else Trace.from(trace),
-          Trace.from(requestTrace)
-        ]));
+                if (trace is Chain) ...trace.traces else Trace.from(trace),
+                Trace.from(requestTrace)
+              ]));
   }
 }
 

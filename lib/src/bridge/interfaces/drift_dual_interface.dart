@@ -7,7 +7,6 @@ import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_int
 class DriftMultipleInterface extends DriftBridgeInterface {
   final List<DriftBridgeInterface> interfaces;
 
-
   DriftMultipleInterface(this.interfaces);
 
   @override
@@ -26,7 +25,8 @@ class DriftMultipleInterface extends DriftBridgeInterface {
 
   @override
   Future<DriftBridgeClient> connect() async {
-    return _DriftMultipleClient(await Future.wait(interfaces.map((e) async => await e.connect())));
+    return _DriftMultipleClient(
+        await Future.wait(interfaces.map((e) async => await e.connect())));
   }
 
   /// Combines the incoming connections from both primary and secondary interfaces
@@ -42,7 +42,6 @@ class DriftMultipleInterface extends DriftBridgeInterface {
     }
     return Future.value();
   }
-
 }
 
 class _DriftMultipleClient extends DriftBridgeClient {

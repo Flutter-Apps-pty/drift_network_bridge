@@ -77,7 +77,8 @@ class TCPExecutor extends BaseExecutor {
 
   Future<DatabaseConnection> _buildRemoteConnection() async {
     return (await DriftTcpInterface.remote(
-        ipAddress: InternetAddress.loopbackIPv4, port: 4040)).value!;
+            ipAddress: InternetAddress.loopbackIPv4, port: 4040))
+        .value!;
   }
 }
 
@@ -88,7 +89,7 @@ class MqttExecutor extends BaseExecutor {
   DatabaseConnection createConnection() {
     Database(DatabaseConnection(NativeDatabase(file, logStatements: true)))
         .host(DriftMqttInterface(host: '127.0.0.1'),
-        onlyAcceptSingleConnection: true);
+            onlyAcceptSingleConnection: true);
     return DatabaseConnection.delayed(_buildRemoteConnection());
   }
 
@@ -109,9 +110,11 @@ class DualTcpExecutor extends BaseExecutor {
     ], onlyAcceptSingleConnection: true);
     return DatabaseConnection.delayed(_buildRemoteConnection());
   }
+
   Future<DatabaseConnection> _buildRemoteConnection() async {
     return (await DriftTcpInterface.remote(
-        ipAddress: InternetAddress.loopbackIPv4, port: 4040)).value!;
+            ipAddress: InternetAddress.loopbackIPv4, port: 4040))
+        .value!;
   }
 }
 
@@ -127,6 +130,7 @@ class DualMqttExecutor extends BaseExecutor {
     ], onlyAcceptSingleConnection: true);
     return DatabaseConnection.delayed(_buildRemoteConnection());
   }
+
   Future<DatabaseConnection> _buildRemoteConnection() async {
     return (await DriftMqttInterface.remote(host: '127.0.0.1')).value!;
   }

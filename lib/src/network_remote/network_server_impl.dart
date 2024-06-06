@@ -10,6 +10,7 @@ import '../network.dart';
 import 'network_communication.dart';
 // ignore: implementation_imports
 import 'package:drift/src/runtime/cancellation_zone.dart';
+
 // ignore: subtype_of_sealed_class
 /// The implementation of a drift server, manging remote channels to send
 /// database requests.
@@ -173,7 +174,8 @@ class ServerNetworkImplementation implements DriftNetworkServer {
         : connection;
   }
 
-  Future<int> _spawnTransaction(DriftNetworkCommunication comm, int? executor) async {
+  Future<int> _spawnTransaction(
+      DriftNetworkCommunication comm, int? executor) async {
     final transaction = (await _loadExecutor(executor)).beginTransaction();
     final id = _putExecutor(transaction, beforeCurrent: true);
 
@@ -260,7 +262,6 @@ class ServerNetworkImplementation implements DriftNetworkServer {
       _backlogUpdated.add(null);
     }
   }
-
 
   @override
   void dispatchTableUpdateNotification(NotifyTablesUpdated notification,

@@ -9,6 +9,7 @@ import '../test/original/test_utils/database_vm.dart';
 Future<void> main() async {
   preferLocalSqlite3();
 
-  final db = Database(DatabaseConnection(NativeDatabase.memory(logStatements: true)));
+  final db =
+      Database(DatabaseConnection(NativeDatabase.memory(logStatements: true)));
   db.host(DriftTcpInterface());
 }

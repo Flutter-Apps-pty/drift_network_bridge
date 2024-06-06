@@ -16,9 +16,7 @@ import 'package:stream_channel/stream_channel.dart';
 import 'package:drift/src/remote/protocol.dart';
 
 import 'bridge/interfaces/base/drift_bridge_interface.dart';
-import 'bridge/interfaces/drift_dual_interface.dart';
 import 'bridge/network_bridge_server.dart';
-
 
 /// Signature of a function that opens a database connection.
 typedef DatabaseOpener = QueryExecutor Function();
@@ -55,6 +53,7 @@ class DriftBridgeServer {
   final bool serialize;
 
   final NetworkDriftServer? server;
+
   /// Creates a [DriftBridgeServer] talking to clients by using the
   /// [DriftBridgeInterface].
   ///
@@ -70,7 +69,8 @@ class DriftBridgeServer {
   /// In most scenarios, [serialize] can be disabled for a considerable
   /// performance improvement.
   /// {@endtemplate}
-  DriftBridgeServer(this.networkInterface, {this.serialize = true, this.server});
+  DriftBridgeServer(this.networkInterface,
+      {this.serialize = true, this.server});
 
   Future<StreamChannel> _open() {
     return remoteConnectToServer(networkInterface, serialize);
@@ -94,19 +94,18 @@ class DriftBridgeServer {
     bool serverDebugLog = false,
     bool singleClientMode = false,
   }) async {
-    try{
+    try {
       final connection = await connectToNetworkAndInitialize(
         await _open(),
         debugLog: serverDebugLog,
         serialize: serialize,
         singleClientMode: singleClientMode,
-      ).timeout(DriftNetworkCommunication.timeout,onTimeout: (){
+      ).timeout(DriftNetworkCommunication.timeout, onTimeout: () {
         throw TimeoutException('Connection to server timed out');
       });
       return ErrorOr.value(DatabaseConnection(connection.executor,
           streamQueries: connection.streamQueries, connectionData: this));
-    }
-    catch(e){
+    } catch (e) {
       return ErrorOr.error(e);
     }
   }
@@ -129,12 +128,11 @@ class DriftBridgeServer {
   ///
   /// {@macro drift_server_serialize}
   static Future<DriftBridgeServer> create(
-      DatabaseOpener opener, {
-        bool serialize = false,
-        required DriftBridgeInterface networkInterface,
-      }) async {
-    NetworkDriftServer(networkInterface, opener(),
-        killServerWhenDone: false);
+    DatabaseOpener opener, {
+    bool serialize = false,
+    required DriftBridgeInterface networkInterface,
+  }) async {
+    NetworkDriftServer(networkInterface, opener(), killServerWhenDone: false);
 
     return DriftBridgeServer(networkInterface, serialize: serialize);
   }
@@ -150,11 +148,16 @@ class DriftBridgeServer {
 
 /// Experimental methods to connect to an existing drift database from different
 /// clients over a network.
-extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser> on DB {
+extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
+    on DB {
   @experimental
-  Future<DriftBridgeServer> hostAll(List<DriftBridgeInterface> networkInterfaces, {bool onlyAcceptSingleConnection = false}) async {
-    return host(DriftMultipleInterface(networkInterfaces),onlyAcceptSingleConnection: onlyAcceptSingleConnection);
+  Future<DriftBridgeServer> hostAll(
+      List<DriftBridgeInterface> networkInterfaces,
+      {bool onlyAcceptSingleConnection = false}) async {
+    return host(DriftMultipleInterface(networkInterfaces),
+        onlyAcceptSingleConnection: onlyAcceptSingleConnection);
   }
+
   /// Creates a [DriftBridgeServer] that, when connected to, will run queries on the
   /// database already opened by `this`.
   ///
@@ -179,7 +182,8 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser> on DB 
   /// The example of running a short-lived server for a single task unit
   /// requiring a database is also available through [networkWithDatabase].
   @experimental
-  Future<DriftBridgeServer> host(DriftBridgeInterface networkInterface, {bool onlyAcceptSingleConnection = false}) async {
+  Future<DriftBridgeServer> host(DriftBridgeInterface networkInterface,
+      {bool onlyAcceptSingleConnection = false}) async {
     // ignore: invalid_use_of_protected_member
     final localConnection = resolvedEngine.connection;
 
@@ -200,7 +204,7 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser> on DB 
           NotifyTablesUpdated(localUpdates.toList()));
     });
     final forwardToLocal =
-    server.server.tableUpdateNotifications.listen((remoteUpdates) {
+        server.server.tableUpdateNotifications.listen((remoteUpdates) {
       notifyUpdates(remoteUpdates.updates.toSet());
     });
     server.server.done.whenComplete(() {
@@ -214,6 +218,7 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser> on DB 
       server: server,
     );
   }
+
   /// Creates a short-lived server to run the [computation] with a drift
   /// database.
   ///

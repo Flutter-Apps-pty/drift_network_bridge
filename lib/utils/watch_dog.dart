@@ -9,10 +9,14 @@ class Watchdog {
   final Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
 
-  Duration get remainingTime{
+  Duration get remainingTime {
     print('timeout!.inMilliseconds: ${timeout?.inMilliseconds}');
     print('_stopwatch.elapsedMilliseconds: ${_stopwatch.elapsedMilliseconds}');
-    return timeout == null ?Duration.zero: Duration( milliseconds: timeout!.inMilliseconds - _stopwatch.elapsedMilliseconds);
+    return timeout == null
+        ? Duration.zero
+        : Duration(
+            milliseconds:
+                timeout!.inMilliseconds - _stopwatch.elapsedMilliseconds);
   }
 
   void start({Duration? timeout, Function()? onTimeout}) {

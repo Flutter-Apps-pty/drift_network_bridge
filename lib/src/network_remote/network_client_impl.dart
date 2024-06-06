@@ -15,7 +15,6 @@ import 'package:drift/src/remote/protocol.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'network_communication.dart';
 
-
 /// The client part of a remote drift communication scheme.
 class DriftNetworkClient {
   final DriftNetworkCommunication _channel;
