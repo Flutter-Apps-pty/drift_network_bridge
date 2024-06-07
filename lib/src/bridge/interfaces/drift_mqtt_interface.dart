@@ -116,7 +116,6 @@ class DriftMqttInterface extends DriftBridgeInterface {
     required String host,
     int port = 1883,
     String name = 'drift_bridge',
-    void Function(Object error)? onConnectionError,
   }) =>
       DriftBridgeInterface.remote(
           DriftMqttInterface(host: host, port: port, name: name));
