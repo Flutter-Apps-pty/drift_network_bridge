@@ -9,6 +9,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/remote.dart';
 import 'package:drift_network_bridge/drift_network_bridge.dart';
 import 'package:drift_network_bridge/error_handling/error_or.dart';
+import 'package:drift_network_bridge/src/network_remote/network_client_impl.dart';
 import 'package:drift_network_bridge/src/network_remote/network_communication.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
@@ -156,6 +157,29 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
       {bool onlyAcceptSingleConnection = false}) async {
     return host(DriftMultipleInterface(networkInterfaces),
         onlyAcceptSingleConnection: onlyAcceptSingleConnection);
+  }
+
+  @experimental
+  bool isConnected() {
+    // ignore: invalid_use_of_protected_member
+    if (resolvedEngine.connection.executor is! RemoteQueryExecutor) {
+      return false;
+    }
+    final client =
+        // ignore: invalid_use_of_protected_member
+        (resolvedEngine.connection.executor as RemoteQueryExecutor).client;
+    return client.isConnected();
+  }
+
+  void onDisconnect(void Function() callback) {
+    // ignore: invalid_use_of_protected_member
+    if (resolvedEngine.connection.executor is! RemoteQueryExecutor) {
+      return;
+    }
+    final client =
+        // ignore: invalid_use_of_protected_member
+        (resolvedEngine.connection.executor as RemoteQueryExecutor).client;
+    client.onDisconnect(callback);
   }
 
   /// Creates a [DriftBridgeServer] that, when connected to, will run queries on the

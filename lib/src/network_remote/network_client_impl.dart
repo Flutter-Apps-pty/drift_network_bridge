@@ -37,7 +37,7 @@ class DriftNetworkClient {
   /// The resulting database connection. Operations on this connection are
   /// relayed through the remote communication channel.
   late final DatabaseConnection connection = DatabaseConnection(
-    _RemoteQueryExecutor(this),
+    RemoteQueryExecutor(this),
     streamQueries: _streamStore,
   );
 
@@ -58,7 +58,7 @@ class DriftNetworkClient {
     final payload = request.payload;
 
     if (payload is RunBeforeOpen) {
-      final executor = _RemoteQueryExecutor(this, payload.createdExecutor);
+      final executor = RemoteQueryExecutor(this, payload.createdExecutor);
       return _connectedDb.beforeOpen(executor, payload.details);
     } else if (payload is NotifyTablesUpdated) {
       _streamStore.handleTableUpdates(payload.updates.toSet(), true);
@@ -66,6 +66,14 @@ class DriftNetworkClient {
       _serverDialect = payload.dialect;
       _serverInfo.complete(payload);
     }
+  }
+
+  bool isConnected() {
+    return !_channel.isClosed;
+  }
+
+  void onDisconnect(void Function() callback) {
+    _channel.closed.then((_) => callback());
   }
 }
 
@@ -139,8 +147,8 @@ abstract class _BaseExecutor extends QueryExecutor {
   }
 }
 
-class _RemoteQueryExecutor extends _BaseExecutor {
-  _RemoteQueryExecutor(DriftNetworkClient client, [int? executorId])
+class RemoteQueryExecutor extends _BaseExecutor {
+  RemoteQueryExecutor(DriftNetworkClient client, [int? executorId])
       : super(client, executorId);
 
   Completer<void>? _setSchemaVersion;
