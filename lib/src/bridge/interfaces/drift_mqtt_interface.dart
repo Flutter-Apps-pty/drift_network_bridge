@@ -183,7 +183,7 @@ class DriftMqttClient extends DriftBridgeClient {
   void listen(Function(Object message) onData, {required Function() onDone}) {
     client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
       for (var message in messages) {
-        final payload = MqttPublishPayload.bytesToStringAsString(
+        String payload = MqttPublishPayload.bytesToStringAsString(
             ((message.payload) as MqttPublishMessage).payload.message);
         if (SubscriptionTopic(message.topic).safeMatch(pIncomingTopic)) {
           if (payload == 'ok') {
@@ -191,8 +191,16 @@ class DriftMqttClient extends DriftBridgeClient {
           }
         } else if (SubscriptionTopic(message.topic)
             .safeMatch(PublicationTopic(sDataTopic.rawTopic))) {
-          final data = payload.contains('[') ? jsonDecode(payload) : payload;
-          onData(data);
+          while (payload.contains('][')) {
+            final index = payload.indexOf('][');
+            onData(jsonDecode(payload.substring(0, index + 1)));
+            payload = payload.substring(index + 1);
+          }
+          if (payload.contains('[')) {
+            onData(jsonDecode(payload));
+          } else {
+            onData(payload);
+          }
           Logger().d('Received data from $message.topic : $payload');
         } else {
           Logger().i('Discarding message from ${message.topic} : $payload');
