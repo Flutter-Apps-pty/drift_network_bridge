@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/error_handling/error_or.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
+import 'package:logger/logger.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:typed_data/typed_data.dart';
@@ -14,7 +15,7 @@ extension on MqttServerClient {
     final builder = MqttClientPayloadBuilder();
     builder.addString(message);
     // Publish the event to the MQTT broker
-    print('publishing $topic with\nmessage $message');
+    Logger().d('publishing $topic with\nmessage $message');
     return publishMessage(topic, MqttQos.exactlyOnce, builder.payload!);
   }
 }
@@ -68,12 +69,12 @@ class DriftMqttInterface extends DriftBridgeInterface {
             serverClient.publishString(
                 '${pIncomingTopic.rawTopic}/$payload', 'ok');
           } else {
-            print('Discarding message from ${message.topic} : $payload');
+            Logger().i('Discarding message from ${message.topic} : $payload');
           }
         }
       });
     } catch (e) {
-      print('Error connecting to the server $e');
+      Logger().e('Error connecting to the server $e');
       return ErrorOr.error(e);
     }
     return ErrorOr.value(null);
@@ -190,11 +191,11 @@ class DriftMqttClient extends DriftBridgeClient {
           }
         } else if (SubscriptionTopic(message.topic)
             .safeMatch(PublicationTopic(sDataTopic.rawTopic))) {
-          final data = jsonDecode(payload);
+          final data = payload.contains('[') ? jsonDecode(payload) : payload;
           onData(data);
+          Logger().d('Received data from $message.topic : $payload');
         } else {
-          print('Discarding message from ${message.topic} : $payload');
-          print('should not be here');
+          Logger().i('Discarding message from ${message.topic} : $payload');
         }
       }
     }, onDone: onDone);

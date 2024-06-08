@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/error_handling/error_or.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
+import 'package:logger/logger.dart';
 
 class DriftTcpInterface extends DriftBridgeInterface {
   late ServerSocket server;
@@ -56,7 +57,7 @@ class DriftTcpClient extends DriftBridgeClient {
 
   @override
   void send(Object? message) {
-    print('TCP: Sending $message');
+    Logger().d('TCP: Sending $message');
     if (message is List) {
       socket.add(jsonEncode(message).codeUnits);
     } else if (message is String) {

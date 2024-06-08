@@ -10,8 +10,6 @@ class Watchdog {
   Timer? _timer;
 
   Duration get remainingTime {
-    print('timeout!.inMilliseconds: ${timeout?.inMilliseconds}');
-    print('_stopwatch.elapsedMilliseconds: ${_stopwatch.elapsedMilliseconds}');
     return timeout == null
         ? Duration.zero
         : Duration(

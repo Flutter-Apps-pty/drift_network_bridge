@@ -23,6 +23,7 @@ dependencies:
   http:
   path:
   sqlite3:
+  logger:
 
 dev_dependencies:
   lints: ^2.0.0
