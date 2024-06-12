@@ -46,13 +46,16 @@ class DriftTcpInterface extends DriftBridgeInterface {
 }
 
 class DriftTcpClient extends DriftBridgeClient {
-  final Socket socket;
+  Socket socket;
 
-  DriftTcpClient(this.socket);
+  DriftTcpClient(this.socket) {
+    // register disconnection so that the reconnect can be handled
+    socket.done.then((value) => onDisconnect());
+  }
 
   @override
   void close() {
-    socket.close();
+    socket.destroy();
   }
 
   @override
@@ -82,5 +85,10 @@ class DriftTcpClient extends DriftBridgeClient {
         onData(serialized);
       }
     }, onDone: onDone);
+  }
+
+  @override
+  Future<void> connect() async {
+    socket = await Socket.connect(socket.remoteAddress, socket.remotePort);
   }
 }

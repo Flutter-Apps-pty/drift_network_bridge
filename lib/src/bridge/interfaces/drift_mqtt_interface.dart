@@ -159,9 +159,9 @@ class DriftMqttClient extends DriftBridgeClient {
     client.setProtocolV311();
     // client.autoReconnect = true;
     // client.resubscribeOnAutoReconnect = true;
-    client.onConnected = () {
-      client.subscribe(sDataTopic.rawTopic, MqttQos.exactlyOnce);
-    };
+    client.onConnected =
+        () => client.subscribe(sDataTopic.rawTopic, MqttQos.exactlyOnce);
+    client.onDisconnected = () => onDisconnect();
   }
 
   @override
@@ -209,6 +209,7 @@ class DriftMqttClient extends DriftBridgeClient {
     }, onDone: onDone);
   }
 
+  @override
   Future<MqttClientConnectionStatus?> connect() => client.connect();
 
   Subscription? subscribe(String topic, MqttQos qosLevel) =>

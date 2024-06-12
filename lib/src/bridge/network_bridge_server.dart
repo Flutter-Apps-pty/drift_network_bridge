@@ -2,7 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/drift_network_bridge.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
-import 'interfaces/base/drift_bridge_interface.dart';
 
 @internal
 const disconnectMessage = '_disconnect';

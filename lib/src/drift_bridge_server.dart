@@ -16,7 +16,6 @@ import 'package:stream_channel/stream_channel.dart';
 // ignore: implementation_imports
 import 'package:drift/src/remote/protocol.dart';
 
-import 'bridge/interfaces/base/drift_bridge_interface.dart';
 import 'bridge/network_bridge_server.dart';
 
 /// Signature of a function that opens a database connection.

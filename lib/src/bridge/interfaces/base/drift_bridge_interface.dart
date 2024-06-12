@@ -22,9 +22,34 @@ abstract class DriftBridgeInterface {
 }
 
 abstract class DriftBridgeClient {
+  final bool shouldReconnect;
+  final int maxReconnectAttempts;
+  int _reconnectAttempts = 0;
+  Timer? _reconnectTimer;
   void listen(Function(Object message) onData, {required Function() onDone});
 
   void close();
 
   void send(Object? message);
+
+  Future<void> connect();
+
+  void onDisconnect() {
+    if (shouldReconnect && _reconnectAttempts < maxReconnectAttempts) {
+      _reconnectAttempts++;
+      _reconnectTimer?.cancel();
+      _reconnectTimer = Timer(Duration(seconds: 5), () {
+        connect().catchError((e) {
+          print('Reconnection attempt failed: $e');
+          onDisconnect();
+        });
+      });
+    } else {
+      print('Maximum reconnection attempts reached. Closing the connection.');
+      close();
+    }
+  }
+
+  DriftBridgeClient(
+      {this.shouldReconnect = true, this.maxReconnectAttempts = 999999});
 }
