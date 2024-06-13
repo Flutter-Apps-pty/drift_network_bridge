@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/drift_tcp_interface.dart';
@@ -12,4 +14,37 @@ Future<void> main() async {
   final db =
       Database(DatabaseConnection(NativeDatabase.memory(logStatements: true)));
   db.host(DriftTcpInterface());
+  // startServer();
+}
+
+void startServer() async {
+  var server = await ServerSocket.bind(InternetAddress.anyIPv4, 4040);
+  print('Server started on ${server.address.address}:${server.port}');
+
+  await for (var socket in server) {
+    handleClient(socket);
+  }
+}
+
+void handleClient(Socket socket) {
+  print(
+      'Client connected: ${socket.remoteAddress.address}:${socket.remotePort}');
+
+  socket.listen(
+    (Uint8List data) {
+      final message = String.fromCharCodes(data);
+      print('Received message: $message');
+
+      final response = 'Server received: $message';
+      socket.write(response);
+    },
+    onError: (error) {
+      print('Error: $error');
+      socket.close();
+    },
+    onDone: () {
+      print('Client disconnected');
+      socket.close();
+    },
+  );
 }

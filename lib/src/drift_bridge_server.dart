@@ -158,18 +158,6 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
         onlyAcceptSingleConnection: onlyAcceptSingleConnection);
   }
 
-  @experimental
-  bool isConnected() {
-    // ignore: invalid_use_of_protected_member
-    if (resolvedEngine.connection.executor is! RemoteQueryExecutor) {
-      return false;
-    }
-    final client =
-        // ignore: invalid_use_of_protected_member
-        (resolvedEngine.connection.executor as RemoteQueryExecutor).client;
-    return client.isConnected();
-  }
-
   void onDisconnect(void Function() callback) {
     // ignore: invalid_use_of_protected_member
     if (resolvedEngine.connection.executor is! RemoteQueryExecutor) {

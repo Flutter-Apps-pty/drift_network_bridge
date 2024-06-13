@@ -161,7 +161,6 @@ class DriftMqttClient extends DriftBridgeClient {
     // client.resubscribeOnAutoReconnect = true;
     client.onConnected =
         () => client.subscribe(sDataTopic.rawTopic, MqttQos.exactlyOnce);
-    client.onDisconnected = () => onDisconnect();
   }
 
   @override

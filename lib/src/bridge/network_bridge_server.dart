@@ -3,6 +3,8 @@ import 'package:drift_network_bridge/drift_network_bridge.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
 
+import '../network_remote/network_server_impl.dart';
+
 @internal
 const disconnectMessage = '_disconnect';
 
@@ -59,7 +61,7 @@ class NetworkDriftServer {
     this.onlyAcceptSingleConnection = false,
   }) : server = DriftNetworkServer(
           connection,
-          allowRemoteShutdown: true,
+          allowRemoteShutdown: false,
           closeConnectionAfterShutdown: closeConnectionAfterShutdown,
         ) {
     /// host listening for incoming connections first connect is TCP, second is MQTT so its serves both
@@ -95,7 +97,10 @@ class NetworkDriftServer {
         }, onDone: () {
           // Closed locally - notify the client about this.
           incomingConnection.send(disconnectMessage);
-          connection.close();
+          if (server is ServerNetworkImplementation &&
+              (server as ServerNetworkImplementation).allowRemoteShutdown) {
+            connection.close();
+          }
         });
 
         server.serve(controller.foreign, serialize: true);

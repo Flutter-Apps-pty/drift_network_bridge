@@ -69,9 +69,4 @@ class _DriftMultipleClient extends DriftBridgeClient {
       client.send(message);
     }
   }
-
-  @override
-  Future<void> connect() {
-    return Future.wait(clients.map((e) => e.connect()));
-  }
 }

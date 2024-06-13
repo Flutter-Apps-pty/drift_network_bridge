@@ -47,26 +47,36 @@ class DriftTcpInterface extends DriftBridgeInterface {
 
 class DriftTcpClient extends DriftBridgeClient {
   Socket socket;
+  bool closed = false;
 
   DriftTcpClient(this.socket) {
     // register disconnection so that the reconnect can be handled
-    socket.done.then((value) => onDisconnect());
+    socket.done.then((value) => closed = true);
   }
 
   @override
   void close() {
-    socket.destroy();
+    closed = true;
+    socket.close();
   }
 
   @override
   void send(Object? message) {
-    Logger().d('TCP: Sending $message');
-    if (message is List) {
-      socket.add(jsonEncode(message).codeUnits);
-    } else if (message is String) {
-      //_disconnect as String
-      socket.add(message.codeUnits);
+    if (closed) {
+      Logger().d('TCP: Connection closed, cannot send message');
+      return;
     }
+    Logger().d('TCP: Sending $message');
+    runZonedGuarded<void>(() async {
+      if (message is List) {
+        socket.add(jsonEncode(message).codeUnits);
+      } else if (message is String) {
+        //_disconnect as String
+        socket.add(message.codeUnits);
+      }
+    }, (error, stack) {
+      Logger().e('Error sending message: $error');
+    });
   }
 
   @override
@@ -84,11 +94,12 @@ class DriftTcpClient extends DriftBridgeClient {
       } else {
         onData(serialized);
       }
-    }, onDone: onDone);
-  }
-
-  @override
-  Future<void> connect() async {
-    socket = await Socket.connect(socket.remoteAddress, socket.remotePort);
+    }, onError: (err) {
+      Logger().e('Error: $err');
+    }, onDone: () {
+      Logger().i('Client disconnected');
+      close();
+      onDone();
+    });
   }
 }
