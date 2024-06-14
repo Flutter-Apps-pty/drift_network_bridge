@@ -11,10 +11,15 @@ import '../test/original/test_utils/database_vm.dart';
 Future<void> main() async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   preferLocalSqlite3();
+  // final dbController = RemoteDatabase((conn) {
+  //   return Database(conn);
+  // }, DriftTcpInterface(ipAddress: InternetAddress.loopbackIPv4, port: 4040));
+  // final _db = await dbController.asyncDb;
+
   final dbController = RemoteDatabase((conn) {
     return Database(conn);
-  }, DriftTcpInterface(ipAddress: InternetAddress.loopbackIPv4, port: 4040));
-  final tcpDb = await dbController.asyncDb;
+  }, DriftMqttInterface(host: '127.0.0.1'));
+  final _db = await dbController.asyncDb;
 
   // final tcpConnection = await DriftTcpInterface.remote(
   //     ipAddress: InternetAddress.loopbackIPv4, port: 4040);
@@ -24,7 +29,7 @@ Future<void> main() async {
   // final mqttDb = Database(mqttConnection.value!);
   //
   try {
-    final test = await tcpDb()?.users.all().get();
+    final test = await _db()?.users.all().get();
     print(test);
   } catch (e, stacktrace) {
     print(e);
@@ -36,10 +41,18 @@ Future<void> main() async {
     try {
       if (!dbController.isConnected()) {
         print('reconnecting from controller');
+        // dbController.updateInterface(DriftTcpInterface(
+        //     ipAddress: InternetAddress.loopbackIPv4, port: 4040));
       }
-      final test = await tcpDb()?.users.all().get();
+      final test = await _db()?.users.all().get();
       print(test);
+      // if (test != null) {
+      //   dbController.updateInterface(DriftTcpInterface(
+      //       ipAddress: InternetAddress.loopbackIPv4, port: 4041));
+      // }
     } catch (e, stacktrace) {
+      // dbController.updateInterface(DriftTcpInterface(
+      //     ipAddress: InternetAddress.loopbackIPv4, port: 4040));
       print(e);
       print(stacktrace);
     }

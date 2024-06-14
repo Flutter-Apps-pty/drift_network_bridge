@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:async/async.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/error_handling/error_or.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
@@ -11,12 +12,18 @@ import 'package:typed_data/typed_data.dart';
 import 'package:uuid/v8.dart';
 
 extension on MqttServerClient {
-  int publishString(String topic, String message) {
+  int publishString(String topic, String message, {bool retaining = false}) {
     final builder = MqttClientPayloadBuilder();
     builder.addString(message);
     // Publish the event to the MQTT broker
     Logger().d('publishing $topic with\nmessage $message');
-    return publishMessage(topic, MqttQos.exactlyOnce, builder.payload!);
+    runZonedGuarded<int>(() {
+      return publishMessage(topic, MqttQos.exactlyOnce, builder.payload!,
+          retain: retaining);
+    }, (error, stack) {
+      Logger().e('Error publishing message $error');
+    });
+    return -1;
   }
 }
 
@@ -124,15 +131,32 @@ class DriftMqttInterface extends DriftBridgeInterface {
   @override
   FutureOr<void> setupServer() {
     serverClient = MqttServerClient.withPort(host, name, port);
-    serverClient.connectionMessage ??= MqttConnectMessage();
-    serverClient.connectionMessage =
-        serverClient.connectionMessage!.startClean();
+    serverClient.connectionMessage ??= MqttConnectMessage()
+        .withWillRetain()
+        .withWillTopic(
+            '$name/connection') // If you set this you must set a will message
+        .withWillMessage('false')
+        .withWillQos(MqttQos.exactlyOnce)
+        .startClean(); // Non persistent session for testing
+
     serverClient.logging(on: false);
     serverClient.keepAlivePeriod = 30;
     serverClient.setProtocolV311();
-    // serverClient.autoReconnect = true;
+    serverClient.autoReconnect = true;
+    serverClient.onConnected = () {
+      serverClient.publishString('$name/connection', 'true', retaining: true);
+    };
     // serverClient.resubscribeOnAutoReconnect = true;
-    return Future.sync(_initializeServer);
+    return _initializeServer().then((serverState) {
+      if (serverState.isError) {
+        Logger().e('Error initializing server $serverState');
+        Logger().i('Retrying server initialization');
+        Future.delayed(const Duration(seconds: 5), () {
+          setupServer();
+        });
+      }
+      return serverState.value;
+    });
   }
 }
 
@@ -140,11 +164,14 @@ class DriftMqttClient extends DriftBridgeClient {
   final MqttServerClient client;
   final String _name;
   final bool isClient;
+  bool closed = false;
   PublicationTopic get pIncomingTopic =>
       PublicationTopic('$_name/stream/$session');
   SubscriptionTopic get sDataTopic => isClient
       ? SubscriptionTopic('$_name/$session/client')
       : SubscriptionTopic('$_name/$session/host');
+  SubscriptionTopic get sServerConnection =>
+      SubscriptionTopic('$_name/connection');
   PublicationTopic get pDataTopic => isClient
       ? PublicationTopic('$_name/$session/host')
       : PublicationTopic('$_name/$session/client');
@@ -157,24 +184,44 @@ class DriftMqttClient extends DriftBridgeClient {
     client.logging(on: false);
     client.keepAlivePeriod = 30;
     client.setProtocolV311();
-    // client.autoReconnect = true;
+    client.autoReconnect = true;
     // client.resubscribeOnAutoReconnect = true;
-    client.onConnected =
-        () => client.subscribe(sDataTopic.rawTopic, MqttQos.exactlyOnce);
+    client.onConnected = () {
+      client.subscribe(sDataTopic.rawTopic, MqttQos.exactlyOnce);
+      if (isClient) {
+        client.subscribe(sServerConnection.rawTopic, MqttQos.exactlyOnce);
+      }
+    };
+    client.onDisconnected = () {
+      closed = true;
+    };
   }
 
   @override
   void close() {
-    client.disconnect();
+    closed = true;
+    try {
+      Future.microtask(() => client.disconnect());
+    } catch (e) {
+      Logger().e('Error disconnecting client $e');
+    }
   }
 
   @override
   void send(Object? message) {
-    if (message is List) {
-      client.publishString(pDataTopic.rawTopic, jsonEncode(message));
-    } else if (message is String) {
-      //_disconnect as String
-      client.publishString(pDataTopic.rawTopic, message);
+    if (closed) {
+      Logger().d('Mqtt: Connection closed, cannot send message');
+      return;
+    }
+    try {
+      if (message is List) {
+        client.publishString(pDataTopic.rawTopic, jsonEncode(message));
+      } else if (message is String) {
+        //_disconnect as String
+        client.publishString(pDataTopic.rawTopic, message);
+      }
+    } catch (e) {
+      Logger().e('Error sending message $e');
     }
   }
 
@@ -184,7 +231,12 @@ class DriftMqttClient extends DriftBridgeClient {
       for (var message in messages) {
         String payload = MqttPublishPayload.bytesToStringAsString(
             ((message.payload) as MqttPublishMessage).payload.message);
-        if (SubscriptionTopic(message.topic).safeMatch(pIncomingTopic)) {
+        if (SubscriptionTopic(message.topic)
+            .safeMatch(PublicationTopic(sServerConnection.rawTopic))) {
+          if (payload == 'false') {
+            close();
+          }
+        } else if (SubscriptionTopic(message.topic).safeMatch(pIncomingTopic)) {
           if (payload == 'ok') {
             sessionReady = true;
           }
@@ -205,10 +257,13 @@ class DriftMqttClient extends DriftBridgeClient {
           Logger().i('Discarding message from ${message.topic} : $payload');
         }
       }
-    }, onDone: onDone);
+    }, onDone: () {
+      Logger().i('Client disconnected');
+      close();
+      onDone();
+    });
   }
 
-  @override
   Future<MqttClientConnectionStatus?> connect() => client.connect();
 
   Subscription? subscribe(String topic, MqttQos qosLevel) =>

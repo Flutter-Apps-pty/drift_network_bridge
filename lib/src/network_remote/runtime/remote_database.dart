@@ -13,7 +13,7 @@ class RemoteDatabase<T extends GeneratedDatabase> {
   final T Function(dynamic conn) _factory;
 
   /// The Drift bridge interface used for remote communication.
-  final DriftBridgeInterface interface;
+  DriftBridgeInterface _interface;
 
   /// A flag indicating whether to automatically reconnect on disconnection.
   final bool autoReconnect;
@@ -29,7 +29,7 @@ class RemoteDatabase<T extends GeneratedDatabase> {
   /// [_factory] is a function that creates a new database instance.
   /// [interface] is the Drift bridge interface used for remote communication.
   /// [autoReconnect] is a flag indicating whether to automatically reconnect on disconnection.
-  RemoteDatabase(this._factory, this.interface, {this.autoReconnect = true}) {
+  RemoteDatabase(this._factory, this._interface, {this.autoReconnect = true}) {
     _innerConnect();
   }
 
@@ -49,7 +49,7 @@ class RemoteDatabase<T extends GeneratedDatabase> {
 
   /// Establishes a remote database connection.
   Future<void> _innerConnect() async {
-    final connectionResult = await DriftBridgeInterface.remote(interface);
+    final connectionResult = await DriftBridgeInterface.remote(_interface);
     if (connectionResult.isError) {
       if (autoReconnect) {
         _scheduleReconnect();
@@ -87,4 +87,18 @@ class RemoteDatabase<T extends GeneratedDatabase> {
 
   /// Checks if a database connection is currently established.
   bool isConnected() => _db != null;
+
+  /// Updates the interface used for remote communication.
+  Future<void> updateInterface(DriftBridgeInterface newInterface) async {
+    _interface = newInterface;
+    await _reconnectWithNewInterface();
+  }
+
+  /// Reconnects with the new interface.
+  Future<void> _reconnectWithNewInterface() async {
+    _reconnectTimer?.cancel();
+    _db?.close();
+    _db = null;
+    await _innerConnect();
+  }
 }
