@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
+import 'package:drift_network_bridge/drift_network_bridge.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/drift_mqtt_interface.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/drift_tcp_interface.dart';
 import 'package:drift_network_bridge/src/drift_bridge_server.dart';
@@ -75,5 +76,50 @@ void main() {
           .valueOrThrow,
       throwsA(isA<TimeoutException>()),
     );
+  });
+  test('update interface start correct', () async {
+    DriftNetworkCommunication.timeout = const Duration(seconds: 5);
+    await Database(DatabaseConnection(testInMemoryDatabase())).hostAll([
+      DriftTcpInterface(port: 4040),
+    ], onlyAcceptSingleConnection: false);
+
+    final remoteTcpDb = RemoteDatabase((conn) => Database(conn),
+        DriftTcpInterface(ipAddress: InternetAddress.loopbackIPv4, port: 4040));
+    await remoteTcpDb.asyncDb;
+    remoteTcpDb.updateInterface(
+        DriftTcpInterface(ipAddress: InternetAddress.loopbackIPv4, port: 4045));
+    expect(remoteTcpDb.isConnected(), isFalse);
+    final user = await remoteTcpDb.db()?.getUserById(1);
+    expect(user == null, true);
+    remoteTcpDb.updateInterface(
+        DriftTcpInterface(ipAddress: InternetAddress.loopbackIPv4, port: 4040));
+    await remoteTcpDb.asyncDb;
+    expect(remoteTcpDb.isConnected(), isTrue);
+    final user2 = await remoteTcpDb.db()?.getUserById(1);
+    expect(user2 == null, false);
+  });
+  test('update interface start in correct', () async {
+    DriftNetworkCommunication.timeout = const Duration(seconds: 5);
+    await Database(DatabaseConnection(testInMemoryDatabase())).hostAll([
+      DriftTcpInterface(port: 4040),
+    ], onlyAcceptSingleConnection: false);
+
+    final remoteTcpDb = RemoteDatabase((conn) => Database(conn),
+        DriftTcpInterface(ipAddress: InternetAddress.loopbackIPv4, port: 4045));
+    expectLater(
+        remoteTcpDb.asyncDb.timeout(Duration(seconds: 10),
+            onTimeout: () => throw TimeoutException('Timeout')),
+        throwsA(isA<TimeoutException>()));
+
+    expect(remoteTcpDb.isConnected(), isFalse);
+    final user = await remoteTcpDb.db()?.getUserById(1);
+    expect(user == null, true);
+
+    remoteTcpDb.updateInterface(
+        DriftTcpInterface(ipAddress: InternetAddress.loopbackIPv4, port: 4040));
+    await remoteTcpDb.asyncDb;
+    expect(remoteTcpDb.isConnected(), isTrue);
+    final user2 = await remoteTcpDb.db()?.getUserById(1);
+    expect(user2 == null, false);
   });
 }
