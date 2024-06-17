@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/drift_network_bridge.dart';
 
+import '../network_client_impl.dart';
+
 //todo allow to change or update the interface
 /// A class that manages a remote database connection using Drift.
 class RemoteDatabase<T extends GeneratedDatabase> {
@@ -19,7 +21,7 @@ class RemoteDatabase<T extends GeneratedDatabase> {
   final bool autoReconnect;
 
   /// A completer that completes when the first database connection is established.
-  final Completer<T> _completer = Completer();
+  Completer<T> _completer = Completer();
 
   /// A timer used for scheduling reconnection attempts.
   Timer? _reconnectTimer;
@@ -90,6 +92,16 @@ class RemoteDatabase<T extends GeneratedDatabase> {
 
   /// Updates the interface used for remote communication.
   Future<void> updateInterface(DriftBridgeInterface newInterface) async {
+    // ignore: invalid_use_of_protected_member
+    if (_db?.resolvedEngine.connection.executor is! RemoteQueryExecutor &&
+        _db != null) {
+      return;
+    }
+    RemoteQueryExecutor? executor =
+        // ignore: invalid_use_of_protected_member
+        _db?.resolvedEngine.connection.executor as RemoteQueryExecutor?;
+
+    executor?.close();
     _interface = newInterface;
     await _reconnectWithNewInterface();
   }
@@ -99,6 +111,7 @@ class RemoteDatabase<T extends GeneratedDatabase> {
     _reconnectTimer?.cancel();
     _db?.close();
     _db = null;
+    _completer = Completer();
     await _innerConnect();
   }
 }
