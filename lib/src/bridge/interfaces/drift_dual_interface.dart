@@ -42,6 +42,27 @@ class DriftMultipleInterface extends DriftBridgeInterface {
     }
     return Future.value();
   }
+
+  @override
+  void onConnected(Function() onConnected) {
+    for (var interface in interfaces) {
+      interface.onConnected(onConnected);
+    }
+  }
+
+  @override
+  void onDisconnected(Function() onDisconnected) {
+    for (var interface in interfaces) {
+      interface.onDisconnected(onDisconnected);
+    }
+  }
+
+  @override
+  void onReconnected(Function() onReconnected) {
+    for (var interface in interfaces) {
+      interface.onReconnected(onReconnected);
+    }
+  }
 }
 
 class _DriftMultipleClient extends DriftBridgeClient {

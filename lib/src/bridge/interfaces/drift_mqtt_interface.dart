@@ -158,6 +158,24 @@ class DriftMqttInterface extends DriftBridgeInterface {
       return serverState.value;
     });
   }
+
+  @override
+  void onConnected(Function() onConnected) {
+    serverClient.onConnected = () {
+      serverClient.publishString('$name/connection', 'true', retaining: true);
+      onConnected.call();
+    };
+  }
+
+  @override
+  void onDisconnected(Function() onDisconnected) {
+    serverClient.onDisconnected = onDisconnected;
+  }
+
+  @override
+  void onReconnected(Function() onReconnected) {
+    serverClient.onAutoReconnect = onReconnected;
+  }
 }
 
 class DriftMqttClient extends DriftBridgeClient {

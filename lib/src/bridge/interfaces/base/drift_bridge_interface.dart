@@ -9,7 +9,9 @@ abstract class DriftBridgeInterface {
   void shutdown();
   FutureOr<DriftBridgeClient> connect();
   FutureOr<void> setupServer();
-
+  void onConnected(Function() onConnected);
+  void onDisconnected(Function() onDisconnected);
+  void onReconnected(Function() onReconnected);
   static Future<ErrorOr<DatabaseConnection>> remote(
       DriftBridgeInterface interface) async {
     DriftBridgeServer server = DriftBridgeServer(interface);

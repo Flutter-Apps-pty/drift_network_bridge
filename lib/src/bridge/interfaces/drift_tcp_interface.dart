@@ -15,7 +15,7 @@ class DriftTcpInterface extends DriftBridgeInterface {
   final int port;
 
   DriftTcpInterface({this.ipAddress, this.port = 4040});
-
+  Function()? _onConnected;
   @override
   void close() => server.close();
 
@@ -42,6 +42,22 @@ class DriftTcpInterface extends DriftBridgeInterface {
   Future<void> setupServer() async {
     server =
         await ServerSocket.bind(InternetAddress.anyIPv4, port, shared: true);
+    _onConnected?.call();
+  }
+
+  @override
+  void onConnected(Function() onConnected) {
+    _onConnected = onConnected;
+  }
+
+  @override
+  void onDisconnected(Function() onDisconnected) {
+    // TODO: implement onDisconnected
+  }
+
+  @override
+  void onReconnected(Function() onReconnected) {
+    // TODO: implement onReconnected
   }
 }
 
