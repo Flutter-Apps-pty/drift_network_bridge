@@ -42,7 +42,7 @@ class DriftMqttInterface extends DriftBridgeInterface {
   final String host;
   final int port;
   final String name;
-
+  Function()? _onConnected;
   DriftMqttInterface(
       {required this.host, this.port = 1883, this.name = 'drift_bridge'});
   SubscriptionTopic get sIncomingTopic => SubscriptionTopic('$name/stream/#');
@@ -145,6 +145,7 @@ class DriftMqttInterface extends DriftBridgeInterface {
     serverClient.autoReconnect = true;
     serverClient.onConnected = () {
       serverClient.publishString('$name/connection', 'true', retaining: true);
+      _onConnected?.call();
     };
     // serverClient.resubscribeOnAutoReconnect = true;
     return _initializeServer().then((serverState) {
@@ -161,10 +162,7 @@ class DriftMqttInterface extends DriftBridgeInterface {
 
   @override
   void onConnected(Function() onConnected) {
-    serverClient.onConnected = () {
-      serverClient.publishString('$name/connection', 'true', retaining: true);
-      onConnected.call();
-    };
+    _onConnected = onConnected;
   }
 
   @override
