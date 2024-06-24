@@ -3,7 +3,7 @@ description: Middleware Network bridge support for drift
 version: 0.0.1
 
 environment:
-  sdk: '>=3.3.0 <4.0.0'
+  sdk: ^3.1.2
 
 dependencies:
   collection: ^1.16.0
