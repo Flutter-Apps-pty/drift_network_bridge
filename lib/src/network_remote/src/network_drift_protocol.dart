@@ -253,7 +253,7 @@ class NetworkDriftProtocol {
     } else if (variable is BigInt) {
       return [_tag_BigInt, variable.toString()];
     } else if (variable is DateTime) {
-      return [_tag_DateTime, variable.toString()];
+      return [_tag_DateTime, variable.toIso8601String()];
     } else {
       return variable;
     }
