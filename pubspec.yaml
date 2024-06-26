@@ -1,6 +1,6 @@
 name: drift_network_bridge
 description: Middleware Network bridge support for drift
-version: 0.0.1
+version: 0.0.2
 
 environment:
   sdk: ^3.1.2
