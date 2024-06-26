@@ -5,6 +5,7 @@ import 'package:async/async.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/remote.dart';
 import 'package:drift/src/remote/protocol.dart';
+import 'package:drift_network_bridge/src/network_remote/src/network_drift_protocol.dart';
 import 'package:mockito/mockito.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart';
@@ -68,7 +69,7 @@ void main() {
   );
 
   test('Uint8Lists are mapped from and to Uint8Lists', () async {
-    const protocol = DriftProtocol();
+    const protocol = NetworkDriftProtocol();
 
     final request = Request(
       1,
@@ -91,7 +92,7 @@ void main() {
   });
 
   test('BigInts are serialied', () {
-    const protocol = DriftProtocol();
+    const protocol = NetworkDriftProtocol();
 
     final request = Request(
       1,
@@ -265,7 +266,7 @@ void _checkSimple(Object? object) {
   }
 }
 
-Message _checkSimpleRoundtrip(DriftProtocol protocol, Message source) {
+Message _checkSimpleRoundtrip(NetworkDriftProtocol protocol, Message source) {
   final serialized = protocol.serialize(source);
   _checkSimple(serialized);
   return protocol.deserialize(serialized!);

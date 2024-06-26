@@ -2,6 +2,7 @@ import 'dart:async';
 
 // ignore: implementation_imports
 import 'package:drift/src/runtime/api/runtime_api.dart';
+import 'package:drift_network_bridge/src/network_remote/src/network_drift_protocol.dart';
 import 'package:drift_network_bridge/utils/watch_dog.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
@@ -15,7 +16,7 @@ import 'package:stack_trace/stack_trace.dart';
 /// responses.
 @internal
 class DriftNetworkCommunication {
-  static const _protocol = DriftProtocol();
+  static const _protocol = NetworkDriftProtocol();
   static Duration timeout = Duration(seconds: 30);
   final StreamChannel<Object?> _channel;
   final bool _debugLog;
