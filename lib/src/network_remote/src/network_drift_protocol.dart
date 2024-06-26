@@ -23,7 +23,7 @@ class NetworkDriftProtocol {
   static const _tag_ServerInfo = 13;
 
   static const _tag_BigInt = 'bigint';
-  static const _tag_Datetime = 'datetime';
+  static const _tag_DateTime = 'dateTime';
 
   Object? serialize(Message message) {
     if (message is Request) {
@@ -144,7 +144,9 @@ class NetworkDriftProtocol {
 
         result.add(rows.length);
         for (final row in rows) {
-          result.addAll(row.values);
+          for (final value in row.values) {
+            result.add(_encodeDbValue(value));
+          }
         }
         return result;
       }
@@ -157,7 +159,6 @@ class NetworkDriftProtocol {
 
   dynamic decodePayload(dynamic encoded) {
     if (encoded == null || encoded is bool) return encoded;
-
     int tag;
     List? fullMessage;
 
@@ -233,7 +234,7 @@ class NetworkDriftProtocol {
 
           result.add({
             for (var c = 0; c < columnCount; c++)
-              columns[c]: fullMessage[rowOffset + c]
+              columns[c]: _decodeDbValue(fullMessage[rowOffset + c])
           });
         }
         return SelectResult(result);
@@ -252,7 +253,7 @@ class NetworkDriftProtocol {
     } else if (variable is BigInt) {
       return [_tag_BigInt, variable.toString()];
     } else if (variable is DateTime) {
-      return [_tag_Datetime, variable.toIso8601String()];
+      return [_tag_DateTime, variable.toString()];
     } else {
       return variable;
     }
@@ -263,7 +264,7 @@ class NetworkDriftProtocol {
       if (wire.length == 2 && wire[0] == _tag_BigInt) {
         return BigInt.parse(wire[1].toString());
       }
-      if (wire.length == 2 && wire[0] == _tag_Datetime) {
+      if (wire.length == 2 && wire[0] == _tag_DateTime) {
         return DateTime.parse(wire[1].toString());
       }
 
