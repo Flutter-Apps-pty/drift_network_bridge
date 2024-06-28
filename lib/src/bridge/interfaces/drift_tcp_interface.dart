@@ -65,6 +65,7 @@ class DriftTcpClient extends DriftBridgeClient {
   Socket socket;
   bool closed = false;
   List<int> _buffer = [];
+  StreamController<Object> _messageController = StreamController<Object>();
 
   DriftTcpClient(this.socket) {
     socket.done.then((value) => closed = true);
@@ -74,6 +75,7 @@ class DriftTcpClient extends DriftBridgeClient {
   void close() {
     closed = true;
     socket.close();
+    _messageController.close();
   }
 
   @override
@@ -98,7 +100,7 @@ class DriftTcpClient extends DriftBridgeClient {
   void listen(Function(Object message) onData, {required Function() onDone}) {
     socket.listen((data) {
       _buffer.addAll(data);
-      _processBuffer(onData);
+      _processBuffer();
     }, onError: (err) {
       Logger().e('Error: $err');
     }, onDone: () {
@@ -106,9 +108,11 @@ class DriftTcpClient extends DriftBridgeClient {
       close();
       onDone();
     });
+
+    _messageController.stream.listen(onData);
   }
 
-  void _processBuffer(Function(Object message) onData) {
+  void _processBuffer() {
     while (true) {
       int bracketStart = _buffer.indexOf('['.codeUnitAt(0));
       if (bracketStart == -1) break;
@@ -129,10 +133,10 @@ class DriftTcpClient extends DriftBridgeClient {
       String message =
           utf8.decode(_buffer.sublist(bracketStart, bracketEnd + 1));
       try {
-        onData(jsonDecode(message));
+        _messageController.add(jsonDecode(message));
       } catch (e) {
         Logger().e('Error decoding message: $e');
-        onData(message); // Fall back to sending the raw string
+        _messageController.add(message); // Fall back to sending the raw string
       }
 
       _buffer = _buffer.sublist(bracketEnd + 1);
@@ -142,7 +146,7 @@ class DriftTcpClient extends DriftBridgeClient {
     if (_buffer.isNotEmpty) {
       String remaining = utf8.decode(_buffer);
       if (!remaining.startsWith('[')) {
-        onData(remaining);
+        _messageController.add(remaining);
         _buffer.clear();
       }
     }
