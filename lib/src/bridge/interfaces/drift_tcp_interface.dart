@@ -132,6 +132,9 @@ class DriftTcpClient extends DriftBridgeClient {
 
       String message =
           utf8.decode(_buffer.sublist(bracketStart, bracketEnd + 1));
+
+      // Remove unprintable characters
+      message = message.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
       try {
         _messageController.add(jsonDecode(message));
       } catch (e) {
