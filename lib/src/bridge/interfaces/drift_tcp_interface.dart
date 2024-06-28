@@ -64,9 +64,9 @@ class DriftTcpInterface extends DriftBridgeInterface {
 class DriftTcpClient extends DriftBridgeClient {
   Socket socket;
   bool closed = false;
+  List<int> _buffer = [];
 
   DriftTcpClient(this.socket) {
-    // register disconnection so that the reconnect can be handled
     socket.done.then((value) => closed = true);
   }
 
@@ -87,7 +87,6 @@ class DriftTcpClient extends DriftBridgeClient {
       if (message is List) {
         socket.add(jsonEncode(message).codeUnits);
       } else if (message is String) {
-        //_disconnect as String
         socket.add(message.codeUnits);
       }
     }, (error, stack) {
@@ -98,18 +97,8 @@ class DriftTcpClient extends DriftBridgeClient {
   @override
   void listen(Function(Object message) onData, {required Function() onDone}) {
     socket.listen((data) {
-      /// sometimes data is too quick then multiple pack
-      String serialized = utf8.decode(data);
-      while (serialized.contains('][')) {
-        final index = serialized.indexOf('][');
-        onData(jsonDecode(serialized.substring(0, index + 1)));
-        serialized = serialized.substring(index + 1);
-      }
-      if (serialized.contains('[')) {
-        onData(jsonDecode(serialized));
-      } else {
-        onData(serialized);
-      }
+      _buffer.addAll(data);
+      _processBuffer(onData);
     }, onError: (err) {
       Logger().e('Error: $err');
     }, onDone: () {
@@ -117,5 +106,45 @@ class DriftTcpClient extends DriftBridgeClient {
       close();
       onDone();
     });
+  }
+
+  void _processBuffer(Function(Object message) onData) {
+    while (true) {
+      int bracketStart = _buffer.indexOf('['.codeUnitAt(0));
+      if (bracketStart == -1) break;
+
+      int bracketEnd = -1;
+      int openBrackets = 0;
+      for (int i = bracketStart; i < _buffer.length; i++) {
+        if (_buffer[i] == '['.codeUnitAt(0)) openBrackets++;
+        if (_buffer[i] == ']'.codeUnitAt(0)) openBrackets--;
+        if (openBrackets == 0) {
+          bracketEnd = i;
+          break;
+        }
+      }
+
+      if (bracketEnd == -1) break; // No complete message found
+
+      String message =
+          utf8.decode(_buffer.sublist(bracketStart, bracketEnd + 1));
+      try {
+        onData(jsonDecode(message));
+      } catch (e) {
+        Logger().e('Error decoding message: $e');
+        onData(message); // Fall back to sending the raw string
+      }
+
+      _buffer = _buffer.sublist(bracketEnd + 1);
+    }
+
+    // Process any remaining non-JSON data
+    if (_buffer.isNotEmpty) {
+      String remaining = utf8.decode(_buffer);
+      if (!remaining.startsWith('[')) {
+        onData(remaining);
+        _buffer.clear();
+      }
+    }
   }
 }
