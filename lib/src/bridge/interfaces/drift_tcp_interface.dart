@@ -147,6 +147,8 @@ class DriftTcpClient extends DriftBridgeClient {
 
     // Process any remaining non-JSON data
     if (_buffer.isNotEmpty) {
+      // Workaround for ascii characters exceeding what flutter can decode
+      _buffer.removeWhere((element) => element < 32 || element > 126);
       String remaining = utf8.decode(_buffer);
       if (!remaining.startsWith('[')) {
         _messageController.add(remaining);
