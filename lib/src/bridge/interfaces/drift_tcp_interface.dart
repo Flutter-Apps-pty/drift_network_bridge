@@ -131,7 +131,7 @@ class DriftTcpClient extends DriftBridgeClient {
       if (bracketEnd == -1) break; // No complete message found
 
       String message =
-          utf8.decode(_buffer.sublist(bracketStart, bracketEnd + 1));
+          utf8.decode(_buffer.sublist(bracketStart, bracketEnd + 1),allowMalformed: true);
 
       // Remove unprintable characters
       message = message.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
@@ -147,7 +147,7 @@ class DriftTcpClient extends DriftBridgeClient {
 
     // Process any remaining non-JSON data
     if (_buffer.isNotEmpty) {
-      String remaining = utf8.decode(_buffer);
+      String remaining = utf8.decode(_buffer, allowMalformed: true);
       if (!remaining.startsWith('[')) {
         _messageController.add(remaining);
         _buffer.clear();
