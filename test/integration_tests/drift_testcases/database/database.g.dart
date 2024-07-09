@@ -558,7 +558,7 @@ abstract class _$Database extends GeneratedDatabase {
   _$DatabaseManager get managers => _$DatabaseManager(this);
   late final $UsersTable users = $UsersTable(this);
   late final $FriendshipsTable friendships = $FriendshipsTable(this);
-  Selectable<User> mostPopularUsers(int amount) {
+  Selectable<User> mostPopularUsers({required int amount}) {
     return customSelect(
         switch (executor.dialect) {
           SqlDialect.sqlite =>
@@ -578,7 +578,7 @@ abstract class _$Database extends GeneratedDatabase {
         }).asyncMap(users.mapFromRow);
   }
 
-  Selectable<int> amountOfGoodFriends(int user) {
+  Selectable<int> amountOfGoodFriends({required int user}) {
     return customSelect(
         switch (executor.dialect) {
           SqlDialect.sqlite =>
@@ -600,7 +600,7 @@ abstract class _$Database extends GeneratedDatabase {
         }).map((QueryRow row) => row.read<int>('_c0'));
   }
 
-  Selectable<FriendshipsOfResult> friendshipsOf(int user) {
+  Selectable<FriendshipsOfResult> friendshipsOf({required int user}) {
     return customSelect(
         switch (executor.dialect) {
           SqlDialect.sqlite =>
@@ -635,7 +635,7 @@ abstract class _$Database extends GeneratedDatabase {
         }).map((QueryRow row) => row.read<int>('_c0'));
   }
 
-  Selectable<Preferences?> settingsFor(int user) {
+  Selectable<Preferences?> settingsFor({required int user}) {
     return customSelect(
         switch (executor.dialect) {
           SqlDialect.sqlite => 'SELECT preferences FROM users WHERE id = ?1',

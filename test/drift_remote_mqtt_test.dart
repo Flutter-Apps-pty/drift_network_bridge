@@ -1,12 +1,10 @@
 @Timeout(Duration(seconds: 120))
+
 import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/drift_network_bridge.dart';
-import 'package:drift_network_bridge/src/bridge/interfaces/drift_mqtt_interface.dart';
-import 'package:drift_network_bridge/src/bridge/interfaces/drift_tcp_interface.dart';
-import 'package:drift_network_bridge/src/drift_bridge_server.dart';
 import 'package:drift_network_bridge/src/network_remote/network_communication.dart';
 
 import 'package:test/test.dart';

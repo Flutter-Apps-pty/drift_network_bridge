@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 @TestOn('vm')
 @Timeout(Duration(seconds: 120))
 import 'dart:async';

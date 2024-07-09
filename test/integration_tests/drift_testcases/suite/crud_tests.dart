@@ -94,7 +94,7 @@ void crudTests(TestExecutor executor) {
     final b = await db.getUserById(2);
 
     await db.makeFriends(a, b, goodFriends: true);
-    final result = await db.friendshipsOf(a.id).getSingle();
+    final result = await db.friendshipsOf(user: a.id).getSingle();
 
     expect(result, FriendshipsOfResult(reallyGoodFriends: true, user: b));
     await executor.clearDatabaseAndClose(db);

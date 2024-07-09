@@ -1609,6 +1609,10 @@ class MyView extends ViewInfo<MyView, MyViewData> implements HasResultSet {
   Map<SqlDialect, String> get createViewStatements => {
         SqlDialect.sqlite:
             'CREATE VIEW my_view AS SELECT * FROM config WHERE sync_state = 2',
+        SqlDialect.postgres:
+            'CREATE VIEW my_view AS SELECT * FROM config WHERE sync_state = 2',
+        SqlDialect.mariadb:
+            'CREATE VIEW my_view AS SELECT * FROM config WHERE sync_state = 2',
       };
   @override
   MyView get asDslTable => this;
@@ -1662,18 +1666,37 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
   late final WithDefaults withDefaults = WithDefaults(this);
   late final WithConstraints withConstraints = WithConstraints(this);
   late final ConfigTable config = ConfigTable(this);
-  late final Index valueIdx = Index('value_idx',
-      'CREATE INDEX IF NOT EXISTS value_idx ON config (config_value)');
+  late final Index valueIdx = Index.byDialect('value_idx', {
+    SqlDialect.sqlite:
+        'CREATE INDEX IF NOT EXISTS value_idx ON config (config_value)',
+    SqlDialect.postgres:
+        'CREATE INDEX IF NOT EXISTS value_idx ON config (config_value)',
+    SqlDialect.mariadb:
+        'CREATE INDEX IF NOT EXISTS value_idx ON config (config_value)',
+  });
   late final Mytable mytable = Mytable(this);
   late final Email email = Email(this);
   late final WeirdTable weirdTable = WeirdTable(this);
-  late final Trigger myTrigger = Trigger(
-      'CREATE TRIGGER my_trigger AFTER INSERT ON config BEGIN INSERT INTO with_defaults VALUES (new.config_key, LENGTH(new.config_value));END',
-      'my_trigger');
+  late final Trigger myTrigger = Trigger.byDialect('my_trigger', {
+    SqlDialect.sqlite:
+        'CREATE TRIGGER my_trigger AFTER INSERT ON config BEGIN INSERT INTO with_defaults VALUES (new.config_key, LENGTH(new.config_value));END',
+    SqlDialect.postgres:
+        'CREATE TRIGGER my_trigger AFTER INSERT ON config BEGIN INSERT INTO with_defaults VALUES (new.config_key, LENGTH(new.config_value));END',
+    SqlDialect.mariadb:
+        'CREATE TRIGGER my_trigger AFTER INSERT ON config BEGIN INSERT INTO with_defaults VALUES (new.config_key, LENGTH(new.config_value));END',
+  });
   late final MyView myView = MyView(this);
   Future<int> writeConfig({required String key, DriftAny? value}) {
     return customInsert(
-      'REPLACE INTO config (config_key, config_value) VALUES (?1, ?2)',
+      switch (executor.dialect) {
+        SqlDialect.sqlite =>
+          'REPLACE INTO config (config_key, config_value) VALUES (?1, ?2)',
+        SqlDialect.postgres =>
+          'REPLACE INTO config (config_key, config_value) VALUES (\$1, \$2)',
+        SqlDialect.mariadb ||
+        _ =>
+          'REPLACE INTO config (config_key, config_value) VALUES (?, ?)',
+      },
       variables: [Variable<String>(key), Variable<DriftAny>(value)],
       updates: {config},
     );
@@ -1681,7 +1704,15 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
 
   Selectable<Config> readConfig(String var1) {
     return customSelect(
-        'SELECT config_key AS ck, config_value AS cf, sync_state AS cs1, sync_state_implicit AS cs2 FROM config WHERE config_key = ?1',
+        switch (executor.dialect) {
+          SqlDialect.sqlite =>
+            'SELECT config_key AS ck, config_value AS cf, sync_state AS cs1, sync_state_implicit AS cs2 FROM config WHERE config_key = ?1',
+          SqlDialect.postgres =>
+            'SELECT config_key AS ck, config_value AS cf, sync_state AS cs1, sync_state_implicit AS cs2 FROM config WHERE config_key = \$1',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT config_key AS ck, config_value AS cf, sync_state AS cs1, sync_state_implicit AS cs2 FROM config WHERE config_key = ?',
+        },
         variables: [
           Variable<String>(var1)
         ],
@@ -1720,7 +1751,12 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
   Selectable<Config> readDynamic({ReadDynamic$predicate? predicate}) {
     var $arrayStartIndex = 1;
     final generatedpredicate = $write(
-        predicate?.call(this.config) ?? const CustomExpression('(TRUE)'),
+        predicate?.call(this.config) ??
+            const CustomExpression.dialectSpecific({
+              SqlDialect.sqlite: '(TRUE)',
+              SqlDialect.postgres: '(TRUE)',
+              SqlDialect.mariadb: '(TRUE)',
+            }),
         startIndex: $arrayStartIndex);
     $arrayStartIndex += generatedpredicate.amountOfVariables;
     return customSelect('SELECT * FROM config WHERE ${generatedpredicate.sql}',
@@ -1737,13 +1773,26 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
       {TypeConverterVar$pred? pred}) {
     var $arrayStartIndex = 2;
     final generatedpred = $write(
-        pred?.call(this.config) ?? const CustomExpression('(TRUE)'),
+        pred?.call(this.config) ??
+            const CustomExpression.dialectSpecific({
+              SqlDialect.sqlite: '(TRUE)',
+              SqlDialect.postgres: '(TRUE)',
+              SqlDialect.mariadb: '(TRUE)',
+            }),
         startIndex: $arrayStartIndex);
     $arrayStartIndex += generatedpred.amountOfVariables;
     final expandedvar2 = $expandVar($arrayStartIndex, var2.length);
     $arrayStartIndex += var2.length;
     return customSelect(
-        'SELECT config_key FROM config WHERE ${generatedpred.sql} AND(sync_state = ?1 OR sync_state_implicit IN ($expandedvar2))',
+        switch (executor.dialect) {
+          SqlDialect.sqlite =>
+            'SELECT config_key FROM config WHERE ${generatedpred.sql} AND(sync_state = ?1 OR sync_state_implicit IN ($expandedvar2))',
+          SqlDialect.postgres =>
+            'SELECT config_key FROM config WHERE ${generatedpred.sql} AND(sync_state = \$1 OR sync_state_implicit IN ($expandedvar2))',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT config_key FROM config WHERE ${generatedpred.sql} AND(sync_state = ? OR sync_state_implicit IN ($expandedvar2))',
+        },
         variables: [
           Variable<int>(ConfigTable.$convertersyncStaten.toSql(var1)),
           ...generatedpred.introducedVariables,
@@ -1758,24 +1807,38 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
 
   Selectable<JsonResult> tableValued() {
     return customSelect(
-        'SELECT "key", value FROM config,json_each(config.config_value)WHERE json_valid(config_value)',
+        switch (executor.dialect) {
+          SqlDialect.sqlite ||
+          SqlDialect.postgres =>
+            'SELECT "key", value FROM config,json_each(config.config_value)WHERE json_valid(config_value)',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT `key`, value FROM config,json_each(config.config_value)WHERE json_valid(config_value)',
+        },
         variables: [],
         readsFrom: {
           config,
         }).map((QueryRow row) => JsonResult(
-          row: row,
           key: row.read<String>('key'),
           value: row.readNullable<String>('value'),
         ));
   }
 
   Selectable<JsonResult> another() {
-    return customSelect('SELECT \'one\' AS "key", NULLIF(\'two\', \'another\') AS value', variables: [], readsFrom: {})
-        .map((QueryRow row) => JsonResult(
-              row: row,
-              key: row.read<String>('key'),
-              value: row.readNullable<String>('value'),
-            ));
+    return customSelect(
+        switch (executor.dialect) {
+          SqlDialect.sqlite ||
+          SqlDialect.postgres =>
+            'SELECT \'one\' AS "key", NULLIF(\'two\', \'another\') AS value',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT \'one\' AS `key`, NULLIF(\'two\', \'another\') AS value',
+        },
+        variables: [],
+        readsFrom: {}).map((QueryRow row) => JsonResult(
+          key: row.read<String>('key'),
+          value: row.readNullable<String>('value'),
+        ));
   }
 
   Selectable<MultipleResult> multiple({required Multiple$predicate predicate}) {
@@ -1787,7 +1850,14 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
         startIndex: $arrayStartIndex);
     $arrayStartIndex += generatedpredicate.amountOfVariables;
     return customSelect(
-        'SELECT d.*,"c"."a" AS "nested_0.a", "c"."b" AS "nested_0.b", "c"."c" AS "nested_0.c" FROM with_defaults AS d LEFT OUTER JOIN with_constraints AS c ON d.a = c.a AND d.b = c.b WHERE ${generatedpredicate.sql}',
+        switch (executor.dialect) {
+          SqlDialect.sqlite ||
+          SqlDialect.postgres =>
+            'SELECT d.*,"c"."a" AS "nested_0.a", "c"."b" AS "nested_0.b", "c"."c" AS "nested_0.c" FROM with_defaults AS d LEFT OUTER JOIN with_constraints AS c ON d.a = c.a AND d.b = c.b WHERE ${generatedpredicate.sql}',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT d.*,`c`.`a` AS `nested_0.a`, `c`.`b` AS `nested_0.b`, `c`.`c` AS `nested_0.c` FROM with_defaults AS d LEFT OUTER JOIN with_constraints AS c ON d.a = c.a AND d.b = c.b WHERE ${generatedpredicate.sql}',
+        },
         variables: [
           ...generatedpredicate.introducedVariables
         ],
@@ -1796,7 +1866,6 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
           withConstraints,
           ...generatedpredicate.watchedTables,
         }).asyncMap((QueryRow row) async => MultipleResult(
-          row: row,
           a: row.readNullableWithType<String>(const CustomTextType(), 'a'),
           b: row.readNullable<int>('b'),
           c: await withConstraints.mapFromRowOrNull(row,
@@ -1806,7 +1875,15 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
 
   Selectable<EMail> searchEmails({required String? term}) {
     return customSelect(
-        'SELECT * FROM email WHERE email MATCH ?1 ORDER BY rank',
+        switch (executor.dialect) {
+          SqlDialect.sqlite =>
+            'SELECT * FROM email WHERE email MATCH ?1 ORDER BY rank',
+          SqlDialect.postgres =>
+            'SELECT * FROM email WHERE email MATCH \$1 ORDER BY rank',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT * FROM email WHERE email MATCH ? ORDER BY rank',
+        },
         variables: [
           Variable<String>(term)
         ],
@@ -1829,7 +1906,6 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
           config,
           ...generatedexpr.watchedTables,
         }).map((QueryRow row) => ReadRowIdResult(
-          row: row,
           rowid: row.read<int>('rowid'),
           configKey: row.read<String>('config_key'),
           configValue: row.readNullable<DriftAny>('config_value'),
@@ -1845,7 +1921,12 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
   Selectable<MyViewData> readView({ReadView$where? where}) {
     var $arrayStartIndex = 1;
     final generatedwhere = $write(
-        where?.call(this.myView) ?? const CustomExpression('(TRUE)'),
+        where?.call(this.myView) ??
+            const CustomExpression.dialectSpecific({
+              SqlDialect.sqlite: '(TRUE)',
+              SqlDialect.postgres: '(TRUE)',
+              SqlDialect.mariadb: '(TRUE)',
+            }),
         startIndex: $arrayStartIndex);
     $arrayStartIndex += generatedwhere.amountOfVariables;
     return customSelect('SELECT * FROM my_view WHERE ${generatedwhere.sql}',
@@ -1887,7 +1968,15 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
 
   Selectable<NestedResult> nested(String? var1) {
     return customSelect(
-        'SELECT"defaults"."a" AS "nested_0.a", "defaults"."b" AS "nested_0.b", defaults.b AS "\$n_0" FROM with_defaults AS defaults WHERE a = ?1',
+        switch (executor.dialect) {
+          SqlDialect.sqlite =>
+            'SELECT"defaults"."a" AS "nested_0.a", "defaults"."b" AS "nested_0.b", defaults.b AS "\$n_0" FROM with_defaults AS defaults WHERE a = ?1',
+          SqlDialect.postgres =>
+            'SELECT"defaults"."a" AS "nested_0.a", "defaults"."b" AS "nested_0.b", defaults.b AS "\$n_0" FROM with_defaults AS defaults WHERE a = \$1',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT`defaults`.`a` AS `nested_0.a`, `defaults`.`b` AS `nested_0.b`, defaults.b AS `\$n_0` FROM with_defaults AS defaults WHERE a = ?',
+        },
         variables: [
           Variable<String>(var1, const CustomTextType())
         ],
@@ -1895,10 +1984,17 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
           withConstraints,
           withDefaults,
         }).asyncMap((QueryRow row) async => NestedResult(
-          row: row,
           defaults: await withDefaults.mapFromRow(row, tablePrefix: 'nested_0'),
           nestedQuery1: await customSelect(
-              'SELECT * FROM with_constraints AS c WHERE c.b = ?1',
+              switch (executor.dialect) {
+                SqlDialect.sqlite =>
+                  'SELECT * FROM with_constraints AS c WHERE c.b = ?1',
+                SqlDialect.postgres =>
+                  'SELECT * FROM with_constraints AS c WHERE c.b = \$1',
+                SqlDialect.mariadb ||
+                _ =>
+                  'SELECT * FROM with_constraints AS c WHERE c.b = ?',
+              },
               variables: [
                 Variable<int>(row.read('\$n_0'))
               ],
@@ -1911,7 +2007,14 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
 
   Selectable<MyCustomResultClass> customResult() {
     return customSelect(
-        'SELECT with_constraints.b, config.sync_state,"config"."config_key" AS "nested_0.config_key", "config"."config_value" AS "nested_0.config_value", "config"."sync_state" AS "nested_0.sync_state", "config"."sync_state_implicit" AS "nested_0.sync_state_implicit","no_ids"."payload" AS "nested_1.payload" FROM with_constraints INNER JOIN config ON config_key = with_constraints.a CROSS JOIN no_ids',
+        switch (executor.dialect) {
+          SqlDialect.sqlite ||
+          SqlDialect.postgres =>
+            'SELECT with_constraints.b, config.sync_state,"config"."config_key" AS "nested_0.config_key", "config"."config_value" AS "nested_0.config_value", "config"."sync_state" AS "nested_0.sync_state", "config"."sync_state_implicit" AS "nested_0.sync_state_implicit","no_ids"."payload" AS "nested_1.payload" FROM with_constraints INNER JOIN config ON config_key = with_constraints.a CROSS JOIN no_ids',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT with_constraints.b, config.sync_state,`config`.`config_key` AS `nested_0.config_key`, `config`.`config_value` AS `nested_0.config_value`, `config`.`sync_state` AS `nested_0.sync_state`, `config`.`sync_state_implicit` AS `nested_0.sync_state_implicit`,`no_ids`.`payload` AS `nested_1.payload` FROM with_constraints INNER JOIN config ON config_key = with_constraints.a CROSS JOIN no_ids',
+        },
         variables: [],
         readsFrom: {
           withConstraints,
@@ -1951,8 +2054,14 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
         weirdTable,
         myTrigger,
         myView,
-        OnCreateQuery(
-            'INSERT INTO config (config_key, config_value) VALUES (\'key\', \'values\')')
+        OnCreateQuery.byDialect({
+          SqlDialect.sqlite:
+              'INSERT INTO config (config_key, config_value) VALUES (\'key\', \'values\')',
+          SqlDialect.postgres:
+              'INSERT INTO config (config_key, config_value) VALUES (\'key\', \'values\')',
+          SqlDialect.mariadb:
+              'INSERT INTO config (config_key, config_value) VALUES (\'key\', \'values\')',
+        })
       ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
@@ -1966,9 +2075,6 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
           ),
         ],
       );
-  @override
-  DriftDatabaseOptions get options =>
-      const DriftDatabaseOptions(storeDateTimeAsText: true);
 }
 
 typedef $WithDefaultsInsertCompanionBuilder = WithDefaultsCompanion Function({
@@ -2632,14 +2738,13 @@ typedef ReadMultiple$clause = OrderBy Function(ConfigTable config);
 typedef ReadDynamic$predicate = Expression<bool> Function(ConfigTable config);
 typedef TypeConverterVar$pred = Expression<bool> Function(ConfigTable config);
 
-class JsonResult extends CustomResultSet {
+class JsonResult {
   final String key;
   final String? value;
   JsonResult({
-    required QueryRow row,
     required this.key,
     this.value,
-  }) : super(row);
+  });
   @override
   int get hashCode => Object.hash(key, value);
   @override
@@ -2658,16 +2763,15 @@ class JsonResult extends CustomResultSet {
   }
 }
 
-class MultipleResult extends CustomResultSet {
+class MultipleResult {
   final String? a;
   final int? b;
   final WithConstraint? c;
   MultipleResult({
-    required QueryRow row,
     this.a,
     this.b,
     this.c,
-  }) : super(row);
+  });
   @override
   int get hashCode => Object.hash(a, b, c);
   @override
@@ -2691,20 +2795,19 @@ class MultipleResult extends CustomResultSet {
 typedef Multiple$predicate = Expression<bool> Function(
     WithDefaults d, WithConstraints c);
 
-class ReadRowIdResult extends CustomResultSet {
+class ReadRowIdResult {
   final int rowid;
   final String configKey;
   final DriftAny? configValue;
   final SyncType? syncState;
   final SyncType? syncStateImplicit;
   ReadRowIdResult({
-    required QueryRow row,
     required this.rowid,
     required this.configKey,
     this.configValue,
     this.syncState,
     this.syncStateImplicit,
-  }) : super(row);
+  });
   @override
   int get hashCode =>
       Object.hash(rowid, configKey, configValue, syncState, syncStateImplicit);
@@ -2733,14 +2836,13 @@ class ReadRowIdResult extends CustomResultSet {
 typedef ReadRowId$expr = Expression<int> Function(ConfigTable config);
 typedef ReadView$where = Expression<bool> Function(MyView my_view);
 
-class NestedResult extends CustomResultSet {
+class NestedResult {
   final WithDefault defaults;
   final List<WithConstraint> nestedQuery1;
   NestedResult({
-    required QueryRow row,
     required this.defaults,
     required this.nestedQuery1,
-  }) : super(row);
+  });
   @override
   int get hashCode => Object.hash(defaults, nestedQuery1);
   @override

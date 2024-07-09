@@ -1,7 +1,5 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-// ignore_for_file: unused_local_variable
-
 part of 'todos.dart';
 
 // ignore_for_file: type=lint
@@ -13,14 +11,16 @@ class $CategoriesTable extends Categories
   $CategoriesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumnWithTypeConverter<RowId, int> id = GeneratedColumn<
-              int>('id', aliasedName, false,
+  late final GeneratedColumnWithTypeConverter<RowId, int> id =
+      GeneratedColumn<int>('id', aliasedName, false,
           hasAutoIncrement: true,
           type: DriftSqlType.int,
           requiredDuringInsert: false,
-          defaultConstraints:
-              GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'))
-      .withConverter<RowId>($CategoriesTable.$converterid);
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.postgres: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.mariadb: 'PRIMARY KEY AUTO_INCREMENT',
+          })).withConverter<RowId>($CategoriesTable.$converterid);
   static const VerificationMeta _descriptionMeta =
       const VerificationMeta('description');
   @override
@@ -277,14 +277,16 @@ class $TodosTableTable extends TodosTable
   $TodosTableTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumnWithTypeConverter<RowId, int> id = GeneratedColumn<
-              int>('id', aliasedName, false,
+  late final GeneratedColumnWithTypeConverter<RowId, int> id =
+      GeneratedColumn<int>('id', aliasedName, false,
           hasAutoIncrement: true,
           type: DriftSqlType.int,
           requiredDuringInsert: false,
-          defaultConstraints:
-              GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'))
-      .withConverter<RowId>($TodosTableTable.$converterid);
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.postgres: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.mariadb: 'PRIMARY KEY AUTO_INCREMENT',
+          })).withConverter<RowId>($TodosTableTable.$converterid);
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
@@ -634,14 +636,16 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
   $UsersTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumnWithTypeConverter<RowId, int> id = GeneratedColumn<
-              int>('id', aliasedName, false,
+  late final GeneratedColumnWithTypeConverter<RowId, int> id =
+      GeneratedColumn<int>('id', aliasedName, false,
           hasAutoIncrement: true,
           type: DriftSqlType.int,
           requiredDuringInsert: false,
-          defaultConstraints:
-              GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'))
-      .withConverter<RowId>($UsersTable.$converterid);
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.postgres: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.mariadb: 'PRIMARY KEY AUTO_INCREMENT',
+          })).withConverter<RowId>($UsersTable.$converterid);
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -654,13 +658,16 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
   static const VerificationMeta _isAwesomeMeta =
       const VerificationMeta('isAwesome');
   @override
-  late final GeneratedColumn<bool> isAwesome = GeneratedColumn<bool>(
-      'is_awesome', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_awesome" IN (0, 1))'),
-      defaultValue: const Constant(true));
+  late final GeneratedColumn<bool> isAwesome =
+      GeneratedColumn<bool>('is_awesome', aliasedName, false,
+          type: DriftSqlType.bool,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'CHECK ("is_awesome" IN (0, 1))',
+            SqlDialect.postgres: '',
+            SqlDialect.mariadb: 'CHECK (`is_awesome` IN (0, 1))',
+          }),
+          defaultValue: const Constant(true));
   static const VerificationMeta _profilePictureMeta =
       const VerificationMeta('profilePicture');
   @override
@@ -1652,22 +1659,27 @@ class $TableWithEveryColumnTypeTable extends TableWithEveryColumnType
   $TableWithEveryColumnTypeTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumnWithTypeConverter<RowId, int> id = GeneratedColumn<
-              int>('id', aliasedName, false,
+  late final GeneratedColumnWithTypeConverter<RowId, int> id =
+      GeneratedColumn<int>('id', aliasedName, false,
           hasAutoIncrement: true,
           type: DriftSqlType.int,
           requiredDuringInsert: false,
-          defaultConstraints:
-              GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'))
-      .withConverter<RowId>($TableWithEveryColumnTypeTable.$converterid);
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.postgres: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.mariadb: 'PRIMARY KEY AUTO_INCREMENT',
+          })).withConverter<RowId>($TableWithEveryColumnTypeTable.$converterid);
   static const VerificationMeta _aBoolMeta = const VerificationMeta('aBool');
   @override
-  late final GeneratedColumn<bool> aBool = GeneratedColumn<bool>(
-      'a_bool', aliasedName, true,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("a_bool" IN (0, 1))'));
+  late final GeneratedColumn<bool> aBool =
+      GeneratedColumn<bool>('a_bool', aliasedName, true,
+          type: DriftSqlType.bool,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'CHECK ("a_bool" IN (0, 1))',
+            SqlDialect.postgres: '',
+            SqlDialect.mariadb: 'CHECK (`a_bool` IN (0, 1))',
+          }));
   static const VerificationMeta _aDateTimeMeta =
       const VerificationMeta('aDateTime');
   @override
@@ -2182,13 +2194,16 @@ class $DepartmentTable extends Department
   $DepartmentTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-      'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  late final GeneratedColumn<int> id =
+      GeneratedColumn<int>('id', aliasedName, false,
+          hasAutoIncrement: true,
+          type: DriftSqlType.int,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.postgres: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.mariadb: 'PRIMARY KEY AUTO_INCREMENT',
+          }));
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -2360,13 +2375,16 @@ class $ProductTable extends Product with TableInfo<$ProductTable, ProductData> {
   $ProductTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-      'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  late final GeneratedColumn<int> id =
+      GeneratedColumn<int>('id', aliasedName, false,
+          hasAutoIncrement: true,
+          type: DriftSqlType.int,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.postgres: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.mariadb: 'PRIMARY KEY AUTO_INCREMENT',
+          }));
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -2580,13 +2598,16 @@ class $StoreTable extends Store with TableInfo<$StoreTable, StoreData> {
   $StoreTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-      'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  late final GeneratedColumn<int> id =
+      GeneratedColumn<int>('id', aliasedName, false,
+          hasAutoIncrement: true,
+          type: DriftSqlType.int,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.postgres: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.mariadb: 'PRIMARY KEY AUTO_INCREMENT',
+          }));
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -2755,13 +2776,16 @@ class $ListingTable extends Listing with TableInfo<$ListingTable, ListingData> {
   $ListingTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-      'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  late final GeneratedColumn<int> id =
+      GeneratedColumn<int>('id', aliasedName, false,
+          hasAutoIncrement: true,
+          type: DriftSqlType.int,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.postgres: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.mariadb: 'PRIMARY KEY AUTO_INCREMENT',
+          }));
   static const VerificationMeta _productMeta =
       const VerificationMeta('product');
   @override
@@ -3251,13 +3275,19 @@ abstract class _$TodoDb extends GeneratedDatabase {
   late final SomeDao someDao = SomeDao(this as TodoDb);
   Selectable<AllTodosWithCategoryResult> allTodosWithCategory() {
     return customSelect(
-        'SELECT t.*, c.id AS catId, c."desc" AS catDesc FROM todos AS t INNER JOIN categories AS c ON c.id = t.category',
+        switch (executor.dialect) {
+          SqlDialect.sqlite ||
+          SqlDialect.postgres =>
+            'SELECT t.*, c.id AS catId, c."desc" AS catDesc FROM todos AS t INNER JOIN categories AS c ON c.id = t.category',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT t.*, c.id AS catId, c.`desc` AS catDesc FROM todos AS t INNER JOIN categories AS c ON c.id = t.category',
+        },
         variables: [],
         readsFrom: {
           categories,
           todosTable,
         }).map((QueryRow row) => AllTodosWithCategoryResult(
-          row: row,
           id: $TodosTableTable.$converterid.fromSql(row.read<int>('id')),
           title: row.readNullable<String>('title'),
           content: row.read<String>('content'),
@@ -3273,7 +3303,11 @@ abstract class _$TodoDb extends GeneratedDatabase {
 
   Future<int> deleteTodoById(RowId var1) {
     return customUpdate(
-      'DELETE FROM todos WHERE id = ?1',
+      switch (executor.dialect) {
+        SqlDialect.sqlite => 'DELETE FROM todos WHERE id = ?1',
+        SqlDialect.postgres => 'DELETE FROM todos WHERE id = \$1',
+        SqlDialect.mariadb || _ => 'DELETE FROM todos WHERE id = ?',
+      },
       variables: [Variable<int>($TodosTableTable.$converterid.toSql(var1))],
       updates: {todosTable},
       updateKind: UpdateKind.delete,
@@ -3285,7 +3319,15 @@ abstract class _$TodoDb extends GeneratedDatabase {
     final expandedvar3 = $expandVar($arrayStartIndex, var3.length);
     $arrayStartIndex += var3.length;
     return customSelect(
-        'SELECT * FROM todos WHERE title = ?2 OR id IN ($expandedvar3) OR title = ?1',
+        switch (executor.dialect) {
+          SqlDialect.sqlite =>
+            'SELECT * FROM todos WHERE title = ?2 OR id IN ($expandedvar3) OR title = ?1',
+          SqlDialect.postgres =>
+            'SELECT * FROM todos WHERE title = \$2 OR id IN ($expandedvar3) OR title = \$1',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT * FROM todos WHERE title = ? OR id IN ($expandedvar3) OR title = ?',
+        },
         variables: [
           Variable<String>(var1),
           Variable<String>(var2),
@@ -3299,10 +3341,21 @@ abstract class _$TodoDb extends GeneratedDatabase {
 
   Selectable<TodoEntry> search({required RowId id}) {
     return customSelect(
-        'SELECT * FROM todos WHERE CASE WHEN -1 = ?1 THEN 1 ELSE id = ?1 END',
-        variables: [
+        switch (executor.dialect) {
+          SqlDialect.sqlite =>
+            'SELECT * FROM todos WHERE CASE WHEN -1 = ?1 THEN 1 ELSE id = ?1 END',
+          SqlDialect.postgres =>
+            'SELECT * FROM todos WHERE CASE WHEN -1 = \$1 THEN 1 ELSE id = \$1 END',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT * FROM todos WHERE CASE WHEN -1 = ? THEN 1 ELSE id = ? END',
+        },
+        variables: executor.dialect.desugarDuplicateVariables([
           Variable<int>($TodosTableTable.$converterid.toSql(id))
-        ],
+        ], [
+          1,
+          1,
+        ]),
         readsFrom: {
           todosTable,
         }).asyncMap(todosTable.mapFromRow);
@@ -4756,7 +4809,7 @@ class _$TodoDbManager {
       $$ListingTableTableManager(_db, _db.listing);
 }
 
-class AllTodosWithCategoryResult extends CustomResultSet {
+class AllTodosWithCategoryResult {
   final RowId id;
   final String? title;
   final String content;
@@ -4766,7 +4819,6 @@ class AllTodosWithCategoryResult extends CustomResultSet {
   final RowId catId;
   final String catDesc;
   AllTodosWithCategoryResult({
-    required QueryRow row,
     required this.id,
     this.title,
     required this.content,
@@ -4775,7 +4827,7 @@ class AllTodosWithCategoryResult extends CustomResultSet {
     this.status,
     required this.catId,
     required this.catDesc,
-  }) : super(row);
+  });
   @override
   int get hashCode => Object.hash(
       id, title, content, targetDate, category, status, catId, catDesc);
@@ -4816,7 +4868,15 @@ mixin _$SomeDaoMixin on DatabaseAccessor<TodoDb> {
       attachedDatabase.todoWithCategoryView;
   Selectable<TodoEntry> todosForUser({required RowId user}) {
     return customSelect(
-        'SELECT t.* FROM todos AS t INNER JOIN shared_todos AS st ON st.todo = t.id INNER JOIN users AS u ON u.id = st.user WHERE u.id = ?1',
+        switch (executor.dialect) {
+          SqlDialect.sqlite =>
+            'SELECT t.* FROM todos AS t INNER JOIN shared_todos AS st ON st.todo = t.id INNER JOIN users AS u ON u.id = st.user WHERE u.id = ?1',
+          SqlDialect.postgres =>
+            'SELECT t.* FROM todos AS t INNER JOIN shared_todos AS st ON st.todo = t.id INNER JOIN users AS u ON u.id = st."user" WHERE u.id = \$1',
+          SqlDialect.mariadb ||
+          _ =>
+            'SELECT t.* FROM todos AS t INNER JOIN shared_todos AS st ON st.todo = t.id INNER JOIN users AS u ON u.id = st.user WHERE u.id = ?',
+        },
         variables: [
           Variable<int>($UsersTable.$converterid.toSql(user))
         ],

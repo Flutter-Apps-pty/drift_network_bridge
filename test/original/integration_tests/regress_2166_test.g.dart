@@ -11,13 +11,16 @@ class $_SomeTableTable extends _SomeTable
   $_SomeTableTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-      'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  late final GeneratedColumn<int> id =
+      GeneratedColumn<int>('id', aliasedName, false,
+          hasAutoIncrement: true,
+          type: DriftSqlType.int,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+            SqlDialect.sqlite: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.postgres: 'PRIMARY KEY AUTOINCREMENT',
+            SqlDialect.mariadb: 'PRIMARY KEY AUTO_INCREMENT',
+          }));
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -93,7 +96,6 @@ class _SomeTableData extends DataClass implements Insertable<_SomeTableData> {
       name: serializer.fromJson<String?>(json['name']),
     );
   }
-  // ignore: unused_element
   factory _SomeTableData.fromJsonString(String encodedJson,
           {ValueSerializer? serializer}) =>
       _SomeTableData.fromJson(
@@ -144,7 +146,6 @@ class _SomeTableCompanion extends UpdateCompanion<_SomeTableData> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
   });
-  // ignore: unused_element
   static Insertable<_SomeTableData> custom({
     Expression<int>? id,
     Expression<String>? name,
