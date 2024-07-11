@@ -1,6 +1,9 @@
 import 'package:drift/drift.dart';
 // ignore: implementation_imports
 import 'package:drift/src/remote/protocol.dart';
+import 'package:postgres/postgres.dart' show Type, TypeRegistry, TypedValue;
+// ignore: implementation_imports
+import 'package:postgres/src/types/type_registry.dart';
 
 class NetworkDriftProtocol {
   const NetworkDriftProtocol();
@@ -24,6 +27,7 @@ class NetworkDriftProtocol {
 
   static const _tag_BigInt = 'bigint';
   static const _tag_DateTime = 'dateTime';
+  static const _tag_TypedValue = 'typedValue';
 
   Object? serialize(Message message) {
     if (message is Request) {
@@ -254,6 +258,12 @@ class NetworkDriftProtocol {
       return [_tag_BigInt, variable.toString()];
     } else if (variable is DateTime) {
       return [_tag_DateTime, variable.toIso8601String()];
+    } else if (variable is TypedValue) {
+      return [
+        _tag_TypedValue,
+        variable.type.oid,
+        _encodeDbValue(variable.value)
+      ];
     } else {
       return variable;
     }
@@ -266,6 +276,12 @@ class NetworkDriftProtocol {
       }
       if (wire.length == 2 && wire[0] == _tag_DateTime) {
         return DateTime.parse(wire[1].toString());
+      }
+      if (wire.length == 3 && wire[0] == _tag_TypedValue) {
+        // Create a Type instance based on the OID
+        TypeRegistry registry = TypeRegistry();
+        final type = registry.resolveOid(wire[1] as int);
+        return TypedValue(type, _decodeDbValue(wire[2]));
       }
 
       return Uint8List.fromList(wire.cast());

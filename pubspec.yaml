@@ -3,7 +3,7 @@ description: Middleware Network bridge support for drift
 version: 0.0.2
 
 environment:
-  sdk: ^3.1.2
+  sdk: ">=3.3.0 <4.0.0"
 
 dependencies:
   collection: ^1.16.0
@@ -30,7 +30,7 @@ dev_dependencies:
   test: ^1.18.0
   drift_dev:
   melos:
-  json_annotation:
+  json_annotation: 4.9.0
   build_runner:
   mockito:
   analyzer:

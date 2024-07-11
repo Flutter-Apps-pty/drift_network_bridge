@@ -1,0 +1,22 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          override_hash_and_equals_in_result_sets: true
+          use_column_name_as_json_key_when_defined_in_moor_file: true
+          write_from_json_string_constructor: true
+          raw_result_set_data: false
+          named_parameters: true
+          sql:
+            # Generate multi-dialect code so that the tests can run on each DBMS we're
+            # working on (even though only sqlite is supported officially).
+            dialects:
+              - sqlite
+              - postgres
+              - mariadb
+            options:
+              version: "3.37"
+              modules:
+                - json1
+                - fts5
