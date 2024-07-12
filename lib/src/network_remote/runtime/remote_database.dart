@@ -12,7 +12,7 @@ class RemoteDatabase<T extends GeneratedDatabase> {
   GeneratedDatabase? _db;
 
   /// A factory function that creates a new database instance.
-  final T Function(dynamic conn) _factory;
+  final T Function(DatabaseConnection conn) _factory;
 
   /// The Drift bridge interface used for remote communication.
   DriftBridgeInterface _interface;
@@ -109,6 +109,8 @@ class RemoteDatabase<T extends GeneratedDatabase> {
   /// Reconnects with the new interface.
   Future<void> _reconnectWithNewInterface() async {
     _reconnectTimer?.cancel();
+    final remote = (_db?.executor as RemoteQueryExecutor?);
+    (_db?.executor as RemoteQueryExecutor?)?.client.serverInfo;
     _db?.close();
     _db = null;
     _completer = Completer();
