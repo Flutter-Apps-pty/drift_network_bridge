@@ -63,6 +63,10 @@ class DriftMultipleInterface extends DriftBridgeInterface {
       interface.onReconnected(onReconnected);
     }
   }
+
+  @override
+  // TODO: implement connectionStream
+  Stream<bool> get connectionStream => throw UnimplementedError();
 }
 
 class _DriftMultipleClient extends DriftBridgeClient {
@@ -90,4 +94,8 @@ class _DriftMultipleClient extends DriftBridgeClient {
       client.send(message);
     }
   }
+
+  @override
+  // TODO: implement connectionStream
+  Stream<bool> get connectionStream => throw UnimplementedError();
 }

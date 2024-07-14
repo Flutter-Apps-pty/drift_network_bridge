@@ -8,6 +8,7 @@ import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_int
 import 'package:logger/logger.dart';
 
 class DriftTcpInterface extends DriftBridgeInterface {
+  final _connectionController = StreamController<bool>.broadcast();
   late ServerSocket server;
 
   final InternetAddress? ipAddress;
@@ -47,6 +48,7 @@ class DriftTcpInterface extends DriftBridgeInterface {
 
   @override
   void onConnected(Function() onConnected) {
+    _connectionController.add(true);
     _onConnected = onConnected;
   }
 
@@ -59,16 +61,26 @@ class DriftTcpInterface extends DriftBridgeInterface {
   void onReconnected(Function() onReconnected) {
     // TODO: implement onReconnected
   }
+
+  @override
+  Stream<bool> get connectionStream => _connectionController.stream;
 }
 
 class DriftTcpClient extends DriftBridgeClient {
+  final StreamController<bool> _connectionStreamController =
+      StreamController<bool>.broadcast();
   Socket socket;
   bool closed = false;
   List<int> _buffer = [];
-  StreamController<Object> _messageController = StreamController<Object>();
+  final StreamController<Object> _messageController =
+      StreamController<Object>();
 
   DriftTcpClient(this.socket) {
-    socket.done.then((value) => closed = true);
+    socket.done.then((value) {
+      closed = true;
+      _connectionStreamController.add(false);
+    });
+    _connectionStreamController.add(true);
   }
 
   @override
@@ -103,8 +115,10 @@ class DriftTcpClient extends DriftBridgeClient {
       _processBuffer();
     }, onError: (err) {
       Logger().e('Error: $err');
+      _connectionStreamController.add(false);
     }, onDone: () {
       Logger().i('Client disconnected');
+      _connectionStreamController.add(false);
       close();
       onDone();
     });
@@ -130,8 +144,9 @@ class DriftTcpClient extends DriftBridgeClient {
 
       if (bracketEnd == -1) break; // No complete message found
 
-      String message =
-          utf8.decode(_buffer.sublist(bracketStart, bracketEnd + 1),allowMalformed: true);
+      String message = utf8.decode(
+          _buffer.sublist(bracketStart, bracketEnd + 1),
+          allowMalformed: true);
 
       // Remove unprintable characters
       message = message.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
@@ -154,4 +169,8 @@ class DriftTcpClient extends DriftBridgeClient {
       }
     }
   }
+
+  @override
+  // TODO: implement connectionStream
+  Stream<bool> get connectionStream => _connectionStreamController.stream;
 }

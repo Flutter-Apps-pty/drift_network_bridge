@@ -5,6 +5,7 @@ import '../../../drift_bridge_server.dart';
 
 abstract class DriftBridgeInterface {
   Stream<DriftBridgeClient> get incomingConnections;
+  Stream<bool> get connectionStream;
   void close();
   void shutdown();
   FutureOr<DriftBridgeClient> connect();
@@ -24,6 +25,7 @@ abstract class DriftBridgeInterface {
 }
 
 abstract class DriftBridgeClient {
+  Stream<bool> get connectionStream;
   void listen(Function(Object message) onData, {required Function() onDone});
 
   void close();

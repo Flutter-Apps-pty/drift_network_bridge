@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:async/async.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/error_handling/error_or.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
@@ -37,6 +36,7 @@ extension on SubscriptionTopic {
 }
 
 class DriftMqttInterface extends DriftBridgeInterface {
+  late Stream<bool> _connectionController;
   late MqttServerClient serverClient;
   final Completer _promiseToClose = Completer();
   final String host;
@@ -70,6 +70,7 @@ class DriftMqttInterface extends DriftBridgeInterface {
             final newClient = DriftMqttClient(
                 MqttServerClient.withPort(host, 'server-$payload', port), name,
                 isClient: false);
+            _connectionController = newClient.connectionStream;
             newClient.session = payload;
             await newClient.connect();
             _incomingConnections.add(newClient);
@@ -107,6 +108,7 @@ class DriftMqttInterface extends DriftBridgeInterface {
     DriftMqttClient client = DriftMqttClient(
         MqttServerClient.withPort(host, 'client-$session', port), name);
     client.session = session;
+    _connectionController = client.connectionStream;
     await client.connect();
     client.subscribe('$name/$session', MqttQos.exactlyOnce);
 
@@ -174,9 +176,15 @@ class DriftMqttInterface extends DriftBridgeInterface {
   void onReconnected(Function() onReconnected) {
     serverClient.onAutoReconnect = onReconnected;
   }
+
+  @override
+  // TODO: implement connectionStream
+  Stream<bool> get connectionStream => _connectionController;
 }
 
 class DriftMqttClient extends DriftBridgeClient {
+  final StreamController<bool> _connectionStreamController =
+      StreamController<bool>.broadcast();
   final MqttServerClient client;
   final String _name;
   final bool isClient;
@@ -207,9 +215,14 @@ class DriftMqttClient extends DriftBridgeClient {
       if (isClient) {
         client.subscribe(sServerConnection.rawTopic, MqttQos.exactlyOnce);
       }
+      _connectionStreamController.add(true);
     };
     client.onDisconnected = () {
+      _connectionStreamController.add(false);
       closed = true;
+    };
+    client.onAutoReconnected = () {
+      _connectionStreamController.add(true);
     };
   }
 
@@ -291,4 +304,8 @@ class DriftMqttClient extends DriftBridgeClient {
 
   void publishString(String rawTopic, String session) =>
       client.publishString(rawTopic, session);
+
+  @override
+  // TODO: implement connectionStream
+  Stream<bool> get connectionStream => _connectionStreamController.stream;
 }
