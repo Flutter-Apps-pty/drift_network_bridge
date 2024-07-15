@@ -21,17 +21,15 @@ import 'bridge/network_bridge_server.dart';
 /// Signature of a function that opens a database connection.
 typedef DatabaseOpener = QueryExecutor Function();
 
-/// Defines utilities to run drift over a network. In the operation
-/// mode created by these utilities, there's a single server instance doing
-/// all the work. Any other client can use the [connect] method to obtain an
-/// instance of a [GeneratedDatabase] class that will delegate its work onto the
-/// server. Auto-updating queries, and transactions work across the network, and
-/// the user facing api is exactly the same.
+/// Defines utilities to run drift over a network. In this operation mode,
+/// there's a single server instance doing all the work. Any other client can
+/// use the [connect] method to obtain an instance of a [GeneratedDatabase]
+/// class that will delegate its work to the server. Auto-updating queries and
+/// transactions work across the network, and the user-facing API remains the same.
 ///
-/// Please note that, while running drift over a network can reduce
-/// lags in client applications, the overall database performance will be worse.
-/// This is because result data is not available directly and instead needs to be
-/// transferred over the network.
+/// Please note that while running drift over a network can reduce latency in
+/// client applications, the overall database performance may be affected due
+/// to network transfer overhead.
 ///
 /// The easiest way to use drift over a network is to use
 /// `NativeDatabase.createOnServer`, which is a drop-in replacement for
@@ -39,7 +37,7 @@ typedef DatabaseOpener = QueryExecutor Function();
 ///
 /// See also:
 /// - The [detailed documentation](https://drift.simonbinder.eu/docs/advanced-features/network),
-///   which provides example codes on how to use this api.
+///   which provides example code on how to use this API.
 class DriftBridgeServer {
   /// The underlying network interface used to establish a connection with this
   /// [DriftBridgeServer].
@@ -52,19 +50,20 @@ class DriftBridgeServer {
   /// and the clients should be serialized.
   final bool serialize;
 
+  /// The underlying NetworkDriftServer instance.
   final NetworkDriftServer? server;
 
-  /// Creates a [DriftBridgeServer] talking to clients by using the
-  /// [DriftBridgeInterface].
+  /// Creates a [DriftBridgeServer] that communicates with clients using the
+  /// provided [DriftBridgeInterface].
   ///
   /// {@template drift_server_serialize}
   /// Internally, drift uses a network interface to send commands to the server
-  /// dispatching database actions.
-  /// In most setups, those channels can send and receive almost any Dart object.
-  /// In special cases though, the platform only supports sending simple types
-  /// across the network. To support those setups, drift can serialize its
-  /// internal communication to only send simple types across the network. The
-  /// [serialize] parameter, which is enabled by default, controls this behavior.
+  /// dispatching database actions. In most setups, those channels can send and
+  /// receive almost any Dart object. In special cases, though, the platform may
+  /// only support sending simple types across the network. To support those setups,
+  /// drift can serialize its internal communication to only send simple types
+  /// across the network. The [serialize] parameter, which is enabled by default,
+  /// controls this behavior.
   ///
   /// In most scenarios, [serialize] can be disabled for a considerable
   /// performance improvement.
@@ -72,6 +71,7 @@ class DriftBridgeServer {
   DriftBridgeServer(this.networkInterface,
       {this.serialize = true, this.server});
 
+  /// Opens a StreamChannel for communication with the server.
   Future<StreamChannel> _open() {
     return remoteConnectToServer(networkInterface, serialize);
   }
@@ -84,12 +84,12 @@ class DriftBridgeServer {
   /// When [singleClientMode] is enabled (it defaults to `false`), drift assumes
   /// that the server will only be connected to once. In this mode, drift will
   /// shutdown the server once the returned [DatabaseConnection] is closed.
-  /// Also, stream queries are more efficient when this mode is enables since we
+  /// Also, stream queries are more efficient when this mode is enabled since we
   /// don't have to synchronize table updates to other clients (since there are
   /// none).
   ///
-  /// Setting the [serverDebugLog] is only helpful when debugging drift itself.
-  /// It will print messages exchanged between the client and the server.
+  /// Setting [serverDebugLog] to `true` will print messages exchanged between
+  /// the client and the server, which can be helpful for debugging.
   Future<ErrorOr<DatabaseConnection>> connect({
     bool serverDebugLog = false,
     bool singleClientMode = false,
@@ -111,7 +111,8 @@ class DriftBridgeServer {
   }
 
   /// Stops the server and disconnects all [DatabaseConnection]s created.
-  /// If you only want to disconnect a database connection created via
+  ///
+  /// If you only want to disconnect a specific database connection created via
   /// [connect], use [GeneratedDatabase.close] instead.
   Future<void> shutdownAll() async {
     return shutdown(await _open(), serialize: serialize);
@@ -137,10 +138,12 @@ class DriftBridgeServer {
     return DriftBridgeServer(networkInterface, serialize: serialize);
   }
 
+  /// Simulates a network failure for testing purposes.
   @visibleForTesting
   // ignore: invalid_use_of_visible_for_testing_member
   void simulateNetworkFailure() => server?.simulateNetworkFailure();
 
+  /// Simulates a network recovery for testing purposes.
   @visibleForTesting
   // ignore: invalid_use_of_visible_for_testing_member
   void simulateNetworkRecovery() => server?.simulateNetworkRecovery();
@@ -150,6 +153,10 @@ class DriftBridgeServer {
 /// clients over a network.
 extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
     on DB {
+  /// Hosts the database on multiple network interfaces simultaneously.
+  ///
+  /// This method creates a [DriftBridgeServer] that listens on all provided
+  /// [networkInterfaces].
   @experimental
   Future<DriftBridgeServer> hostAll(
       List<DriftBridgeInterface> networkInterfaces,
@@ -158,6 +165,9 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
         onlyAcceptSingleConnection: onlyAcceptSingleConnection);
   }
 
+  /// Registers a callback to be invoked when the database connection is disconnected.
+  ///
+  /// This method is useful for handling network disconnections gracefully.
   void onDisconnect(void Function() callback) {
     // ignore: invalid_use_of_protected_member
     if (resolvedEngine.connection.executor is! RemoteQueryExecutor) {
@@ -231,12 +241,11 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
   }
 
   /// Creates a short-lived server to run the [computation] with a drift
-  /// database.
+  /// database over a network.
   ///
-  /// Essentially, this is a variant of running a computation over a network for
-  /// computations that also need to share a drift database between them. As
-  /// drift databases are stateful objects, they can't be send over the network
-  /// without special setup.
+  /// This method is useful for running computations that need to share a drift
+  /// database between different network nodes. As drift databases are stateful
+  /// objects, they can't be sent over the network without special setup.
   ///
   /// This method will extract the underlying database connection of `this`
   /// database into a form that can be serialized over the network. Then, a
@@ -244,17 +253,7 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
   /// responsible for creating an instance of your database class from the
   /// low-level connection.
   ///
-  /// As an example, consider a database class:
-  ///
-  /// ```dart
-  /// class MyDatabase extends $MyDatabase {
-  ///   MyDatabase(QueryExecutor executor): super(executor);
-  /// }
-  /// ```
-  ///
-  /// [networkWithDatabase] can then be used to access an instance of
-  /// `MyDatabase` on a client, even though `MyDatabase` is not generally
-  /// sharable over the network:
+  /// Example usage:
   ///
   /// ```dart
   /// Future<void> loadBulkData(MyDatabase db, NetworkInterface networkInterface) async {
@@ -277,7 +276,7 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
   /// drift will already use a server to run your SQL statements. Using
   /// [networkWithDatabase] is beneficial when an expensive work unit needs
   /// to use the database, or when creating the SQL statements itself is
-  /// expensive.
+  /// expensive and needs to be offloaded to a different network node.
   @experimental
   Future<Ret> networkWithDatabase<Ret>({
     required FutureOr<Ret> Function(DB) computation,
@@ -290,10 +289,6 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
       throw connResult.error!;
     }
     final database = connect(connResult.value!);
-    try {
-      return await computation(database);
-    } finally {
-      await database.close();
-    }
+    return await computation(database);
   }
 }

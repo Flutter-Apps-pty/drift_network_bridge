@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:async/async.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/error_handling/error_or.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
@@ -11,23 +10,30 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:typed_data/typed_data.dart';
 import 'package:uuid/v8.dart';
 
+/// Extension on MqttServerClient to add a method for publishing strings.
 extension on MqttServerClient {
+  /// Publishes a string message to the specified topic.
+  ///
+  /// Returns the message identifier or -1 if there was an error.
   int publishString(String topic, String message, {bool retaining = false}) {
     final builder = MqttClientPayloadBuilder();
     builder.addString(message);
-    // Publish the event to the MQTT broker
     Logger().d('publishing $topic with\nmessage $message');
-    runZonedGuarded<int>(() {
-      return publishMessage(topic, MqttQos.exactlyOnce, builder.payload!,
-          retain: retaining);
-    }, (error, stack) {
-      Logger().e('Error publishing message $error');
-    });
-    return -1;
+    return runZonedGuarded<int>(() {
+          return publishMessage(topic, MqttQos.exactlyOnce, builder.payload!,
+              retain: retaining);
+        }, (error, stack) {
+          Logger().e('Error publishing message $error');
+        }) ??
+        -1;
   }
 }
 
+/// Extension on SubscriptionTopic to add a safe matching method.
 extension on SubscriptionTopic {
+  /// Safely matches a publication topic against this subscription topic.
+  ///
+  /// Returns true if the topics match, false otherwise.
   bool safeMatch(PublicationTopic matcheeTopic) {
     if (matcheeTopic.topicFragments.length != topicFragments.length) {
       return false;
@@ -36,20 +42,47 @@ extension on SubscriptionTopic {
   }
 }
 
+/// A Drift bridge interface implementation using MQTT for communication.
 class DriftMqttInterface extends DriftBridgeInterface {
+  /// The MQTT server client used for communication.
   late MqttServerClient serverClient;
+
+  /// A completer that resolves when the interface is closed.
   final Completer _promiseToClose = Completer();
+
+  /// The host address of the MQTT broker.
   final String host;
+
+  /// The port number of the MQTT broker.
   final int port;
+
+  /// The name of this MQTT bridge.
   final String name;
+
+  /// Callback function to be called when a connection is established.
   Function()? _onConnected;
+
+  /// Creates a new DriftMqttInterface instance.
+  ///
+  /// [host] is the address of the MQTT broker.
+  /// [port] is the port number of the MQTT broker (default is 1883).
+  /// [name] is the name of this MQTT bridge (default is 'drift_bridge').
   DriftMqttInterface(
       {required this.host, this.port = 1883, this.name = 'drift_bridge'});
+
+  /// The subscription topic for incoming messages.
   SubscriptionTopic get sIncomingTopic => SubscriptionTopic('$name/stream/#');
+
+  /// The publication topic for incoming messages.
   PublicationTopic get pIncomingTopic => PublicationTopic('$name/stream');
+
+  /// A stream controller for incoming connections.
   final StreamController<DriftBridgeClient> _incomingConnections =
       StreamController.broadcast();
 
+  /// Initializes the MQTT server.
+  ///
+  /// Returns an [ErrorOr] containing void if successful, or an error if not.
   Future<ErrorOr<void>> _initializeServer() async {
     try {
       await serverClient.connect();
@@ -61,7 +94,6 @@ class DriftMqttInterface extends DriftBridgeInterface {
       });
       serverClient.updates!
           .listen((List<MqttReceivedMessage<MqttMessage>> messages) async {
-        ///create new clients for each incoming connection
         for (var message in messages) {
           final payload = MqttPublishPayload.bytesToStringAsString(
               ((message.payload) as MqttPublishMessage).payload.message);
@@ -93,7 +125,6 @@ class DriftMqttInterface extends DriftBridgeInterface {
       return;
     }
     _promiseToClose.complete();
-    // serverClient.disconnect();
   }
 
   @override
@@ -101,7 +132,7 @@ class DriftMqttInterface extends DriftBridgeInterface {
     close();
   }
 
-  @override //called for connectTo server
+  @override
   Future<DriftBridgeClient> connect() async {
     final session = UuidV8().generate();
     DriftMqttClient client = DriftMqttClient(
@@ -109,17 +140,17 @@ class DriftMqttInterface extends DriftBridgeInterface {
     client.session = session;
     await client.connect();
     client.subscribe('$name/$session', MqttQos.exactlyOnce);
-
-    /// notify server of new client session
     client.publishString('${pIncomingTopic.rawTopic}/$session', session);
     return client;
   }
 
-  ///note we have to make client unique as well as their publishing and receiving topics
   @override
   Stream<DriftBridgeClient> get incomingConnections =>
       _incomingConnections.stream;
 
+  /// Creates a remote database connection using MQTT.
+  ///
+  /// Returns an [ErrorOr] containing a [DatabaseConnection] if successful, or an error if not.
   static Future<ErrorOr<DatabaseConnection>> remote({
     required String host,
     int port = 1883,
@@ -133,11 +164,10 @@ class DriftMqttInterface extends DriftBridgeInterface {
     serverClient = MqttServerClient.withPort(host, name, port);
     serverClient.connectionMessage ??= MqttConnectMessage()
         .withWillRetain()
-        .withWillTopic(
-            '$name/connection') // If you set this you must set a will message
+        .withWillTopic('$name/connection')
         .withWillMessage('false')
         .withWillQos(MqttQos.exactlyOnce)
-        .startClean(); // Non persistent session for testing
+        .startClean();
 
     serverClient.logging(on: false);
     serverClient.keepAlivePeriod = 30;
@@ -147,7 +177,6 @@ class DriftMqttInterface extends DriftBridgeInterface {
       serverClient.publishString('$name/connection', 'true', retaining: true);
       _onConnected?.call();
     };
-    // serverClient.resubscribeOnAutoReconnect = true;
     return _initializeServer().then((serverState) {
       if (serverState.isError) {
         Logger().e('Error initializing server $serverState');
@@ -176,24 +205,49 @@ class DriftMqttInterface extends DriftBridgeInterface {
   }
 }
 
+/// A Drift bridge client implementation using MQTT for communication.
 class DriftMqttClient extends DriftBridgeClient {
+  /// The MQTT client used for communication.
   final MqttServerClient client;
+
+  /// The name of this MQTT bridge.
   final String _name;
+
+  /// Indicates whether this is a client-side instance.
   final bool isClient;
+
+  /// Indicates whether the client is closed.
   bool closed = false;
+
+  /// The publication topic for incoming messages.
   PublicationTopic get pIncomingTopic =>
       PublicationTopic('$_name/stream/$session');
+
+  /// The subscription topic for data messages.
   SubscriptionTopic get sDataTopic => isClient
       ? SubscriptionTopic('$_name/$session/client')
       : SubscriptionTopic('$_name/$session/host');
+
+  /// The subscription topic for server connection status.
   SubscriptionTopic get sServerConnection =>
       SubscriptionTopic('$_name/connection');
+
+  /// The publication topic for data messages.
   PublicationTopic get pDataTopic => isClient
       ? PublicationTopic('$_name/$session/host')
       : PublicationTopic('$_name/$session/client');
 
+  /// The session identifier.
   String session = '';
+
+  /// Indicates whether the session is ready.
   bool sessionReady = false;
+
+  /// Creates a new DriftMqttClient instance.
+  ///
+  /// [client] is the MQTT client to use.
+  /// [_name] is the name of this MQTT bridge.
+  /// [isClient] indicates whether this is a client-side instance (default is true).
   DriftMqttClient(this.client, this._name, {this.isClient = true}) {
     client.connectionMessage ??= MqttConnectMessage();
     client.connectionMessage = client.connectionMessage!.startClean();
@@ -201,7 +255,6 @@ class DriftMqttClient extends DriftBridgeClient {
     client.keepAlivePeriod = 30;
     client.setProtocolV311();
     client.autoReconnect = true;
-    // client.resubscribeOnAutoReconnect = true;
     client.onConnected = () {
       client.subscribe(sDataTopic.rawTopic, MqttQos.exactlyOnce);
       if (isClient) {
@@ -233,7 +286,6 @@ class DriftMqttClient extends DriftBridgeClient {
       if (message is List) {
         client.publishString(pDataTopic.rawTopic, jsonEncode(message));
       } else if (message is String) {
-        //_disconnect as String
         client.publishString(pDataTopic.rawTopic, message);
       }
     } catch (e) {
@@ -242,8 +294,10 @@ class DriftMqttClient extends DriftBridgeClient {
   }
 
   @override
-  void listen(Function(Object message) onData, {required Function() onDone}) {
+  void listen(void Function(Object message) onData,
+      {required void Function() onDone}) {
     client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
+      if (closed) return;
       for (var message in messages) {
         String payload = MqttPublishPayload.bytesToStringAsString(
             ((message.payload) as MqttPublishMessage).payload.message);
@@ -268,7 +322,7 @@ class DriftMqttClient extends DriftBridgeClient {
           } else {
             onData(payload);
           }
-          Logger().d('Received data from $message.topic : $payload');
+          Logger().d('Received data from ${message.topic} : $payload');
         } else {
           Logger().i('Discarding message from ${message.topic} : $payload');
         }
@@ -280,15 +334,25 @@ class DriftMqttClient extends DriftBridgeClient {
     });
   }
 
+  /// Connects the MQTT client.
+  ///
+  /// Returns a Future that completes with the connection status.
   Future<MqttClientConnectionStatus?> connect() => client.connect();
 
+  /// Subscribes to the specified topic.
+  ///
+  /// Returns a [Subscription] object if successful, null otherwise.
   Subscription? subscribe(String topic, MqttQos qosLevel) =>
       client.subscribe(topic, qosLevel);
 
+  /// Publishes a message to the specified topic.
+  ///
+  /// Returns the message identifier.
   int publishMessage(String topic, MqttQos qualityOfService, Uint8Buffer data,
           {bool retain = false}) =>
       client.publishMessage(topic, qualityOfService, data, retain: retain);
 
+  /// Publishes a string message to the specified topic.
   void publishString(String rawTopic, String session) =>
       client.publishString(rawTopic, session);
 }

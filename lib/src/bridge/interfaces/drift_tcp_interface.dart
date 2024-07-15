@@ -6,18 +6,32 @@ import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/error_handling/error_or.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
 import 'package:logger/logger.dart';
+import 'package:uuid/v8generic.dart';
 
+/// A Drift bridge interface implementation using TCP for communication.
 class DriftTcpInterface extends DriftBridgeInterface {
+  /// The server socket for accepting incoming connections.
   late ServerSocket server;
 
+  /// The IP address to bind the server to. If null, it will bind to any IPv4 address.
   final InternetAddress? ipAddress;
 
+  /// The port number to use for the TCP connection.
   final int port;
 
+  /// Creates a new DriftTcpInterface instance.
+  ///
+  /// [ipAddress] is the IP address to bind the server to. If null, it will bind to any IPv4 address.
+  /// [port] is the port number to use for the TCP connection (default is 4040).
   DriftTcpInterface({this.ipAddress, this.port = 4040});
+
+  /// Callback function to be called when a connection is established.
   Function()? _onConnected;
+
   @override
-  void close() => server.close();
+  void close() {
+    server.close();
+  }
 
   @override
   void shutdown() => close();
@@ -28,6 +42,9 @@ class DriftTcpInterface extends DriftBridgeInterface {
         await Socket.connect(ipAddress ?? InternetAddress.loopbackIPv4, port));
   }
 
+  /// Creates a remote database connection using TCP.
+  ///
+  /// Returns an [ErrorOr] containing a [DatabaseConnection] if successful, or an error if not.
   static Future<ErrorOr<DatabaseConnection>> remote(
           {required InternetAddress ipAddress, int port = 4040}) =>
       DriftBridgeInterface.remote(
@@ -61,12 +78,24 @@ class DriftTcpInterface extends DriftBridgeInterface {
   }
 }
 
+/// A Drift bridge client implementation using TCP for communication.
 class DriftTcpClient extends DriftBridgeClient {
-  Socket socket;
-  bool closed = false;
-  List<int> _buffer = [];
-  StreamController<Object> _messageController = StreamController<Object>();
+  /// The TCP socket used for communication.
+  final Socket socket;
 
+  /// Indicates whether the client is closed.
+  bool closed = false;
+
+  /// Buffer to store incoming data until a complete message is received.
+  List<int> _buffer = [];
+
+  /// Stream controller for emitting processed messages.
+  final StreamController<Object> _messageController =
+      StreamController<Object>();
+
+  /// Creates a new DriftTcpClient instance.
+  ///
+  /// [socket] is the TCP socket to use for communication.
   DriftTcpClient(this.socket) {
     socket.done.then((value) => closed = true);
   }
@@ -112,8 +141,13 @@ class DriftTcpClient extends DriftBridgeClient {
     _messageController.stream.listen(onData);
   }
 
+  /// Processes the buffer to extract complete messages.
   void _processBuffer() {
     while (true) {
+      if (closed) {
+        _buffer.clear();
+        return;
+      }
       int bracketStart = _buffer.indexOf('['.codeUnitAt(0));
       if (bracketStart == -1) break;
 
@@ -130,8 +164,9 @@ class DriftTcpClient extends DriftBridgeClient {
 
       if (bracketEnd == -1) break; // No complete message found
 
-      String message =
-          utf8.decode(_buffer.sublist(bracketStart, bracketEnd + 1),allowMalformed: true);
+      String message = utf8.decode(
+          _buffer.sublist(bracketStart, bracketEnd + 1),
+          allowMalformed: true);
 
       // Remove unprintable characters
       message = message.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
@@ -149,7 +184,9 @@ class DriftTcpClient extends DriftBridgeClient {
     if (_buffer.isNotEmpty) {
       String remaining = utf8.decode(_buffer, allowMalformed: true);
       if (!remaining.startsWith('[')) {
-        _messageController.add(remaining);
+        if (!closed) {
+          _messageController.add(remaining);
+        }
         _buffer.clear();
       }
     }

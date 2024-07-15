@@ -68,10 +68,12 @@ class DriftNetworkClient {
     }
   }
 
+  /// Whether the client is still connected to the server.
   bool isConnected() {
     return !_channel.isClosed;
   }
 
+  /// Closes the connection to the server.
   void onDisconnect(void Function() callback) {
     _channel.closed.then((_) => callback());
   }
@@ -147,7 +149,11 @@ abstract class _BaseExecutor extends QueryExecutor {
   }
 }
 
+/// An executor that forwards all queries to a remote server.
+/// This is used in conjunction with [DriftNetworkClient].
+/// It is not meant to be used directly.
 class RemoteQueryExecutor extends _BaseExecutor {
+  // ignore: public_member_api_docs
   RemoteQueryExecutor(DriftNetworkClient client, [int? executorId])
       : super(client, executorId);
 

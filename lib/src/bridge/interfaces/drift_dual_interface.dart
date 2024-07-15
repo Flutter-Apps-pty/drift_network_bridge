@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
 
-// ignore: missing_override_of_must_be_overridden
+/// A class that implements [DriftBridgeInterface] to manage multiple interfaces.
+///
+/// This class allows handling multiple [DriftBridgeInterface] instances simultaneously.
 class DriftMultipleInterface extends DriftBridgeInterface {
+  /// The list of [DriftBridgeInterface] instances managed by this class.
   final List<DriftBridgeInterface> interfaces;
 
+  /// Creates a new [DriftMultipleInterface] with the given list of interfaces.
   DriftMultipleInterface(this.interfaces);
 
   @override
@@ -29,8 +33,7 @@ class DriftMultipleInterface extends DriftBridgeInterface {
         await Future.wait(interfaces.map((e) async => await e.connect())));
   }
 
-  /// Combines the incoming connections from both primary and secondary interfaces
-  ///
+  /// Combines the incoming connections from all managed interfaces.
   @override
   Stream<DriftBridgeClient> get incomingConnections =>
       StreamGroup.merge(interfaces.map((e) => e.incomingConnections));
@@ -65,9 +68,14 @@ class DriftMultipleInterface extends DriftBridgeInterface {
   }
 }
 
+/// A private class that implements [DriftBridgeClient] to manage multiple clients.
+///
+/// This class is used internally by [DriftMultipleInterface] to handle multiple client connections.
 class _DriftMultipleClient extends DriftBridgeClient {
+  /// The list of [DriftBridgeClient] instances managed by this class.
   final List<DriftBridgeClient> clients;
 
+  /// Creates a new [_DriftMultipleClient] with the given list of clients.
   _DriftMultipleClient(this.clients);
 
   @override

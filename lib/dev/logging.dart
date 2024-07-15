@@ -1,6 +1,8 @@
+// ignore_for_file: public_member_api_docs
+
 import 'dart:io';
 
-void kDebugPrint(dynamic message, {bool Function(String str)? cond}) {
+void kDebugPrint(String message, {bool Function(String str)? cond}) {
   if (!bool.fromEnvironment('dart.vm.profile') &&
       !bool.fromEnvironment('dart.vm.product') &&
       (cond == null || cond(message))) {
