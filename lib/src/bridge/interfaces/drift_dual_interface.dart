@@ -66,6 +66,10 @@ class DriftMultipleInterface extends DriftBridgeInterface {
       interface.onReconnected(onReconnected);
     }
   }
+
+  @override
+  // TODO: implement connectionStream
+  Stream<bool> get connectionStream => throw UnimplementedError();
 }
 
 /// A private class that implements [DriftBridgeClient] to manage multiple clients.
@@ -98,4 +102,8 @@ class _DriftMultipleClient extends DriftBridgeClient {
       client.send(message);
     }
   }
+
+  @override
+  // TODO: implement connectionStream
+  Stream<bool> get connectionStream => throw UnimplementedError();
 }

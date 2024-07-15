@@ -8,6 +8,8 @@ import '../network_client_impl.dart';
 //todo allow to change or update the interface
 /// A class that manages a remote database connection using Drift.
 class RemoteDatabase<T extends GeneratedDatabase> {
+  Stream<bool> get interfaceConnectionStream => _interface.connectionStream;
+
   /// The current database instance.
   GeneratedDatabase? _db;
 

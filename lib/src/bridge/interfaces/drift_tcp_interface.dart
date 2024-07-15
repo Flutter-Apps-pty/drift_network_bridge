@@ -11,6 +11,7 @@ import 'package:uuid/v8generic.dart';
 /// A Drift bridge interface implementation using TCP for communication.
 class DriftTcpInterface extends DriftBridgeInterface {
   /// The server socket for accepting incoming connections.
+  final _connectionController = StreamController<bool>.broadcast();
   late ServerSocket server;
 
   /// The IP address to bind the server to. If null, it will bind to any IPv4 address.
@@ -64,6 +65,7 @@ class DriftTcpInterface extends DriftBridgeInterface {
 
   @override
   void onConnected(Function() onConnected) {
+    _connectionController.add(true);
     _onConnected = onConnected;
   }
 
@@ -76,6 +78,9 @@ class DriftTcpInterface extends DriftBridgeInterface {
   void onReconnected(Function() onReconnected) {
     // TODO: implement onReconnected
   }
+
+  @override
+  Stream<bool> get connectionStream => _connectionController.stream;
 }
 
 /// A Drift bridge client implementation using TCP for communication.
@@ -84,10 +89,15 @@ class DriftTcpClient extends DriftBridgeClient {
   final Socket socket;
 
   /// Indicates whether the client is closed.
+  final StreamController<bool> _connectionStreamController =
+      StreamController<bool>.broadcast();
+  Socket socket;
   bool closed = false;
 
   /// Buffer to store incoming data until a complete message is received.
   List<int> _buffer = [];
+  final StreamController<Object> _messageController =
+      StreamController<Object>();
 
   /// Stream controller for emitting processed messages.
   final StreamController<Object> _messageController =
@@ -97,7 +107,11 @@ class DriftTcpClient extends DriftBridgeClient {
   ///
   /// [socket] is the TCP socket to use for communication.
   DriftTcpClient(this.socket) {
-    socket.done.then((value) => closed = true);
+    socket.done.then((value) {
+      closed = true;
+      _connectionStreamController.add(false);
+    });
+    _connectionStreamController.add(true);
   }
 
   @override
@@ -132,8 +146,10 @@ class DriftTcpClient extends DriftBridgeClient {
       _processBuffer();
     }, onError: (err) {
       Logger().e('Error: $err');
+      _connectionStreamController.add(false);
     }, onDone: () {
       Logger().i('Client disconnected');
+      _connectionStreamController.add(false);
       close();
       onDone();
     });
@@ -191,4 +207,8 @@ class DriftTcpClient extends DriftBridgeClient {
       }
     }
   }
+
+  @override
+  // TODO: implement connectionStream
+  Stream<bool> get connectionStream => _connectionStreamController.stream;
 }

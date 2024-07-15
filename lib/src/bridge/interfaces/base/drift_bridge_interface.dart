@@ -9,6 +9,7 @@ abstract class DriftBridgeInterface {
   Stream<DriftBridgeClient> get incomingConnections;
 
   /// Closes the bridge interface.
+  Stream<bool> get connectionStream;
   void close();
 
   /// Shuts down the bridge interface.
@@ -45,6 +46,7 @@ abstract class DriftBridgeInterface {
 
 /// Abstract class defining the interface for a Drift bridge client.
 abstract class DriftBridgeClient {
+  Stream<bool> get connectionStream;
   /// Listens for incoming messages and registers callbacks for data and completion.
   ///
   /// [onData] is called when a message is received.
