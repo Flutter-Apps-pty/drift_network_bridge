@@ -91,13 +91,10 @@ class DriftTcpClient extends DriftBridgeClient {
   /// Indicates whether the client is closed.
   final StreamController<bool> _connectionStreamController =
       StreamController<bool>.broadcast();
-  Socket socket;
   bool closed = false;
 
   /// Buffer to store incoming data until a complete message is received.
   List<int> _buffer = [];
-  final StreamController<Object> _messageController =
-      StreamController<Object>();
 
   /// Stream controller for emitting processed messages.
   final StreamController<Object> _messageController =
