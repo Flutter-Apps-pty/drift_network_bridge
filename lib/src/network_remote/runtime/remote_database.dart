@@ -55,7 +55,7 @@ class RemoteDatabase<T extends GeneratedDatabase> {
   Future<void> _innerConnect() async {
     final connectionResult = await DriftBridgeInterface.remote(_interface);
     if (connectionResult.isError) {
-      if (autoReconnect) {
+      if (autoReconnect && _db != null) {
         _scheduleReconnect();
       }
       return;
