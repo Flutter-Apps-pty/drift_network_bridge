@@ -6,9 +6,13 @@ import 'package:stream_channel/stream_channel.dart';
 import '../network_remote/network_server_impl.dart';
 
 @internal
+
+/// Message used to signal a disconnect from the other end of the connection.
 const disconnectMessage = '_disconnect';
 
 @internal
+
+/// Connects to a remote server using the provided [DriftBridgeInterface].
 Future<StreamChannel> remoteConnectToServer(
     DriftBridgeInterface networkInterface, bool serialize) async {
   final controller = StreamChannelController<Object?>(
@@ -33,7 +37,11 @@ Future<StreamChannel> remoteConnectToServer(
   /// Receiving form server aka database and forwarding to the client
   /// We have to distinguish between the two connections
   controller.local.stream.listen((message) {
-    clientConnection.send(message); //todo replace this with generic send
+    try {
+      clientConnection.send(message);
+    } catch (err) {
+      print(err);
+    }
     // we have to extract the identity somehow here and push it off in the send
   }, onDone: () {
     // Closed locally - notify the remote end about this.

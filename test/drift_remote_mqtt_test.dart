@@ -18,16 +18,16 @@ void main() {
 
   test('recover from half connection', () async {
     DriftNetworkCommunication.timeout = const Duration(seconds: 5);
-    final server = await Database(DatabaseConnection(testInMemoryDatabase()))
-        .hostAll([
+    final server =
+        await Database(DatabaseConnection(testInMemoryDatabase())).hostAll([
       DriftTcpInterface(),
-      DriftMqttInterface(host: '127.0.0.1', name: 'unit_device')
+      DriftMqttInterface(host: 'test.mosquitto.org', name: 'unit_device')
     ], onlyAcceptSingleConnection: false);
     final tcpConnection = (await DriftTcpInterface.remote(
             ipAddress: InternetAddress.loopbackIPv4, port: 4040))
         .value!;
     final mqttConnection = (await DriftMqttInterface.remote(
-            host: '127.0.0.1', name: 'unit_device'))
+            host: 'test.mosquitto.org', name: 'unit_device'))
         .value!;
     Database remoteTcpDb = Database(tcpConnection);
     Database remoteMqttDb = Database(mqttConnection);
@@ -53,7 +53,7 @@ void main() {
     DriftNetworkCommunication.timeout = const Duration(seconds: 5);
     await Database(DatabaseConnection(testInMemoryDatabase())).hostAll([
       DriftTcpInterface(),
-      DriftMqttInterface(host: '127.0.0.1', name: 'unit_device')
+      DriftMqttInterface(host: 'test.mosquitto.org', name: 'unit_device')
     ], onlyAcceptSingleConnection: false);
 
     // Expect a SocketException when trying to connect to the remote TCP database with an incorrect port
@@ -68,7 +68,7 @@ void main() {
     // Expect a SocketException when trying to connect to the remote MQTT database with an incorrect name
     expect(
       () async => (await DriftMqttInterface.remote(
-        host: '127.0.0.1',
+        host: 'test.mosquitto.org',
         name: 'not_unit_device',
       ))
           .valueOrThrow,

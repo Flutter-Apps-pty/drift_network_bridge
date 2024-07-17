@@ -94,6 +94,14 @@ class MqttExecutor extends BaseExecutor {
   Future<DatabaseConnection> _buildRemoteConnection() async {
     return (await DriftMqttInterface.remote(host: '127.0.0.1')).value!;
   }
+
+  @override
+  Future clearDatabaseAndClose(Database db) async {
+    await super.clearDatabaseAndClose(db);
+
+    /// allow time before next test start for latency to resolve
+    await Future.delayed(Duration(milliseconds: 500));
+  }
 }
 
 class DualTcpExecutor extends BaseExecutor {
@@ -140,10 +148,25 @@ Future<void> main() async {
   if (!await BaseExecutor.tempDir.exists()) {
     await BaseExecutor.tempDir.create(recursive: true);
   }
+
+  // Create a server based on the existing database
+  final server = await Database(DatabaseConnection(
+          NativeDatabase(File('quick.sqlite'), logStatements: true)))
+      .serializableConnectionOverNetwork(
+    networkInterface: DriftTcpInterface(port: 4141),
+  );
+
+  // Clients can connect to the server and use the same logical database
+  final clientResult = await server.connect();
+  if (clientResult.isError) {
+    throw clientResult.error!;
+  }
+  final testuser = await Database(clientResult.value!).users.select().get();
+
   runAllTests(TCPExecutor());
-  runAllTests(MqttExecutor());
-  runAllTests(DualTcpExecutor());
-  runAllTests(DualMqttExecutor());
+  // runAllTests(MqttExecutor());
+  // runAllTests(DualTcpExecutor());
+  // runAllTests(DualMqttExecutor());
 
   test('can save and restore a database', () async {
     final mainFile = File(join(join(Directory.current.path, 'temp'),

@@ -116,6 +116,13 @@ class _SomeTableData extends DataClass implements Insertable<_SomeTableData> {
         id: id ?? this.id,
         name: name.present ? name.value : this.name,
       );
+  _SomeTableData copyWithCompanion(_SomeTableCompanion data) {
+    return _SomeTableData(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+    );
+  }
+
   @override
   String toString() {
     return (StringBuffer('_SomeTableData(')
@@ -187,7 +194,7 @@ class _SomeTableCompanion extends UpdateCompanion<_SomeTableData> {
 
 abstract class _$_SomeDb extends GeneratedDatabase {
   _$_SomeDb(QueryExecutor e) : super(e);
-  _$_SomeDbManager get managers => _$_SomeDbManager(this);
+  $_SomeDbManager get managers => $_SomeDbManager(this);
   late final $_SomeTableTable someTable = $_SomeTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -196,7 +203,7 @@ abstract class _$_SomeDb extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [someTable];
 }
 
-typedef $$_SomeTableTableInsertCompanionBuilder = _SomeTableCompanion Function({
+typedef $$_SomeTableTableCreateCompanionBuilder = _SomeTableCompanion Function({
   Value<int> id,
   Value<String?> name,
 });
@@ -211,8 +218,7 @@ class $$_SomeTableTableTableManager extends RootTableManager<
     _SomeTableData,
     $$_SomeTableTableFilterComposer,
     $$_SomeTableTableOrderingComposer,
-    $$_SomeTableTableProcessedTableManager,
-    $$_SomeTableTableInsertCompanionBuilder,
+    $$_SomeTableTableCreateCompanionBuilder,
     $$_SomeTableTableUpdateCompanionBuilder> {
   $$_SomeTableTableTableManager(_$_SomeDb db, $_SomeTableTable table)
       : super(TableManagerState(
@@ -222,9 +228,7 @@ class $$_SomeTableTableTableManager extends RootTableManager<
               $$_SomeTableTableFilterComposer(ComposerState(db, table)),
           orderingComposer:
               $$_SomeTableTableOrderingComposer(ComposerState(db, table)),
-          getChildManagerBuilder: (p) =>
-              $$_SomeTableTableProcessedTableManager(p),
-          getUpdateCompanionBuilder: ({
+          updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<String?> name = const Value.absent(),
           }) =>
@@ -232,7 +236,7 @@ class $$_SomeTableTableTableManager extends RootTableManager<
             id: id,
             name: name,
           ),
-          getInsertCompanionBuilder: ({
+          createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<String?> name = const Value.absent(),
           }) =>
@@ -241,18 +245,6 @@ class $$_SomeTableTableTableManager extends RootTableManager<
             name: name,
           ),
         ));
-}
-
-class $$_SomeTableTableProcessedTableManager extends ProcessedTableManager<
-    _$_SomeDb,
-    $_SomeTableTable,
-    _SomeTableData,
-    $$_SomeTableTableFilterComposer,
-    $$_SomeTableTableOrderingComposer,
-    $$_SomeTableTableProcessedTableManager,
-    $$_SomeTableTableInsertCompanionBuilder,
-    $$_SomeTableTableUpdateCompanionBuilder> {
-  $$_SomeTableTableProcessedTableManager(super.$state);
 }
 
 class $$_SomeTableTableFilterComposer
@@ -283,9 +275,9 @@ class $$_SomeTableTableOrderingComposer
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
-class _$_SomeDbManager {
+class $_SomeDbManager {
   final _$_SomeDb _db;
-  _$_SomeDbManager(this._db);
+  $_SomeDbManager(this._db);
   $$_SomeTableTableTableManager get someTable =>
       $$_SomeTableTableTableManager(_db, _db.someTable);
 }

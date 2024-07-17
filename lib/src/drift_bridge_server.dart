@@ -153,6 +153,70 @@ class DriftBridgeServer {
 /// clients over a network.
 extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
     on DB {
+  /// Creates a [DriftIsolate] that, when connected to, will run queries on the
+  /// database already opened by `this`.
+  ///
+  /// This can be used to share existing database across isolates, as instances
+  /// of generated database classes can't be sent across isolates by default. A
+  /// [DriftIsolate] can be sent over ports though, which enables a concise way
+  /// to open a temporary isolate that is using an existing database:
+  ///
+  /// ```dart
+  /// Future<void> main() async {
+  ///   final database = MyDatabase(...);
+  ///
+  ///   // This is illegal - MyDatabase is not serializable
+  ///   await Isolate.run(() async {
+  ///     await database.batch(...);
+  ///   });
+  ///
+  ///   // This will work. Only the `connection` is sent to the new isolate. By
+  ///   // creating a new database instance based on the connection, the same
+  ///   // logical database can be shared across isolates.
+  ///   final connection = await database.serializableConnection();
+  ///   await Isolate.run(() async {
+  ///      final database = MyDatabase(await connection.connect());
+  ///      await database.batch(...);
+  ///   });
+  /// }
+  /// ```
+  ///
+  /// The example of running a short-lived database for a single task unit
+  /// requiring a database is also available through [computeWithDatabase].
+  @experimental
+  Future<DriftBridgeServer> serializableConnectionOverNetwork({
+    required DriftBridgeInterface networkInterface,
+    bool serverDebugLog = false,
+  }) async {
+    final localConnection = resolvedEngine.connection;
+    final server = NetworkDriftServer(
+      networkInterface,
+      localConnection,
+      onlyAcceptSingleConnection: true,
+      closeConnectionAfterShutdown: false,
+      killServerWhenDone: false,
+    );
+
+    final forwardToServer = tableUpdates().listen((localUpdates) {
+      server.server.dispatchTableUpdateNotification(
+          NotifyTablesUpdated(localUpdates.toList()));
+    });
+    final forwardToLocal =
+        server.server.tableUpdateNotifications.listen((remoteUpdates) {
+      notifyUpdates(remoteUpdates.updates.toSet());
+    });
+    server.server.done.whenComplete(() {
+      forwardToServer.cancel();
+      forwardToLocal.cancel();
+    });
+
+    return DriftBridgeServer(
+      networkInterface,
+      serialize: true,
+      server: server,
+    );
+  }
+
   /// Hosts the database on multiple network interfaces simultaneously.
   ///
   /// This method creates a [DriftBridgeServer] that listens on all provided

@@ -20,16 +20,14 @@ Future<void> main() async {
   });
 
   test('Short lived TCP User Test', () async {
-    final connection =
-        DatabaseConnection(NativeDatabase.memory(logStatements: true));
-    final db = Database(connection);
+    final db = Database(
+        DatabaseConnection(NativeDatabase.memory(logStatements: true)));
 
-    Completer<User>? userCompleter = Completer();
-    await db.networkWithDatabase(
+    final user = await db.networkWithDatabase(
       computation: (database) async {
         final user = await database.getUserById(1);
         print('User: $user');
-        userCompleter.complete(user);
+        return user;
       },
       connect: (connection) {
         return Database(connection);
@@ -38,21 +36,20 @@ Future<void> main() async {
     );
 
     expect(
-        userCompleter.future,
-        completion(User(
+        user,
+        User(
           id: 1,
           name: 'Dash',
           birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
           profilePicture: null,
           preferences: null,
-        )));
+        ));
   });
 
   test('Create a server based on the existing database TCP', () async {
     final connection =
         DatabaseConnection(NativeDatabase.memory(logStatements: true));
     final db = Database(connection);
-
     final server = await db.host(DriftTcpInterface());
     final connRslt = await server.connect();
     if (connRslt.isError) {
@@ -71,7 +68,7 @@ Future<void> main() async {
         ));
   });
 
-  test('Simulate 2 different applications TCP', () async {
+  test('Simulate long lived TCP application', () async {
     final connection =
         DatabaseConnection(NativeDatabase.memory(logStatements: true));
     final db = Database(connection);
@@ -93,48 +90,21 @@ Future<void> main() async {
   });
 
   test('Short lived Mqtt User Test', () async {
-    final connection =
-        DatabaseConnection(NativeDatabase.memory(logStatements: true));
-    final db = Database(connection);
+    final db = Database(
+        DatabaseConnection(NativeDatabase.memory(logStatements: true)));
 
-    Completer<User>? userCompleter = Completer();
-    await db.networkWithDatabase(
+    final user = await db.networkWithDatabase(
       computation: (database) async {
         final user = await database.getUserById(1);
         print('User: $user');
-        userCompleter.complete(user);
+        return user;
       },
       connect: (connection) {
         return Database(connection);
       },
-      networkInterface:
-          DriftMqttInterface(host: 'test.mosquitto.org', name: 'unit_device'),
+      networkInterface: DriftMqttInterface(host: 'test.mosquitto.org'),
     );
 
-    expect(
-        userCompleter.future,
-        completion(User(
-          id: 1,
-          name: 'Dash',
-          birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
-          profilePicture: null,
-          preferences: null,
-        )));
-  });
-
-  test('Create a server based on the existing database TCP', () async {
-    final connection =
-        DatabaseConnection(NativeDatabase.memory(logStatements: true));
-    final db = Database(connection);
-
-    final server = await db.host(
-        DriftMqttInterface(host: 'test.mosquitto.org', name: 'unit_device'));
-    final connRslt = await server.connect();
-    if (connRslt.isError) {
-      throw connRslt.error!;
-    }
-    final client = Database(connRslt.value!);
-    final user = await client.getUserById(1);
     expect(
         user,
         User(
@@ -146,16 +116,42 @@ Future<void> main() async {
         ));
   });
 
-  test('Simulate 2 different applications Mqtt', () async {
+  test('Simulate long lived Mqtt application', () async {
     final connection =
         DatabaseConnection(NativeDatabase.memory(logStatements: true));
     final db = Database(connection);
     await db.host(
         DriftMqttInterface(host: 'test.mosquitto.org', name: 'unit_device'));
+
+    /// Wait for the server to start
+    await Future.delayed(Duration(seconds: 2));
     final remoteConnection = await DriftMqttInterface.remote(
         host: 'test.mosquitto.org', name: 'unit_device');
     final remote = Database(remoteConnection.value!);
     final user = await remote.getUserById(1);
+    expect(
+        user,
+        User(
+          id: 1,
+          name: 'Dash',
+          birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
+          profilePicture: null,
+          preferences: null,
+        ));
+  });
+
+  test('Create a server based on the existing database TCP', () async {
+    final connection =
+        DatabaseConnection(NativeDatabase.memory(logStatements: true));
+    final db = Database(connection);
+
+    final server = await db.host(DriftTcpInterface());
+    final connRslt = await server.connect();
+    if (connRslt.isError) {
+      throw connRslt.error!;
+    }
+    final client = Database(connRslt.value!);
+    final user = await client.getUserById(1);
     expect(
         user,
         User(

@@ -211,6 +211,13 @@ class WithDefault extends DataClass implements Insertable<WithDefault> {
         a: a.present ? a.value : this.a,
         b: b.present ? b.value : this.b,
       );
+  WithDefault copyWithCompanion(WithDefaultsCompanion data) {
+    return WithDefault(
+      a: data.a.present ? data.a.value : this.a,
+      b: data.b.present ? data.b.value : this.b,
+    );
+  }
+
   @override
   String toString() {
     return (StringBuffer('WithDefault(')
@@ -425,6 +432,14 @@ class WithConstraint extends DataClass implements Insertable<WithConstraint> {
         b: b ?? this.b,
         c: c.present ? c.value : this.c,
       );
+  WithConstraint copyWithCompanion(WithConstraintsCompanion data) {
+    return WithConstraint(
+      a: data.a.present ? data.a.value : this.a,
+      b: data.b.present ? data.b.value : this.b,
+      c: data.c.present ? data.c.value : this.c,
+    );
+  }
+
   @override
   String toString() {
     return (StringBuffer('WithConstraint(')
@@ -710,6 +725,18 @@ class Config extends DataClass implements Insertable<Config> {
             ? syncStateImplicit.value
             : this.syncStateImplicit,
       );
+  Config copyWithCompanion(ConfigCompanion data) {
+    return Config(
+      configKey: data.configKey.present ? data.configKey.value : this.configKey,
+      configValue:
+          data.configValue.present ? data.configValue.value : this.configValue,
+      syncState: data.syncState.present ? data.syncState.value : this.syncState,
+      syncStateImplicit: data.syncStateImplicit.present
+          ? data.syncStateImplicit.value
+          : this.syncStateImplicit,
+    );
+  }
+
   @override
   String toString() {
     return (StringBuffer('Config(')
@@ -997,6 +1024,16 @@ class MytableData extends DataClass implements Insertable<MytableData> {
         isInserting: isInserting.present ? isInserting.value : this.isInserting,
         somedate: somedate.present ? somedate.value : this.somedate,
       );
+  MytableData copyWithCompanion(MytableCompanion data) {
+    return MytableData(
+      someid: data.someid.present ? data.someid.value : this.someid,
+      sometext: data.sometext.present ? data.sometext.value : this.sometext,
+      isInserting:
+          data.isInserting.present ? data.isInserting.value : this.isInserting,
+      somedate: data.somedate.present ? data.somedate.value : this.somedate,
+    );
+  }
+
   @override
   String toString() {
     return (StringBuffer('MytableData(')
@@ -1227,6 +1264,14 @@ class EMail extends DataClass implements Insertable<EMail> {
         title: title ?? this.title,
         body: body ?? this.body,
       );
+  EMail copyWithCompanion(EmailCompanion data) {
+    return EMail(
+      sender: data.sender.present ? data.sender.value : this.sender,
+      title: data.title.present ? data.title.value : this.title,
+      body: data.body.present ? data.body.value : this.body,
+    );
+  }
+
   @override
   String toString() {
     return (StringBuffer('EMail(')
@@ -1437,6 +1482,14 @@ class WeirdData extends DataClass implements Insertable<WeirdData> {
         sqlClass: sqlClass ?? this.sqlClass,
         textColumn: textColumn ?? this.textColumn,
       );
+  WeirdData copyWithCompanion(WeirdTableCompanion data) {
+    return WeirdData(
+      sqlClass: data.sqlClass.present ? data.sqlClass.value : this.sqlClass,
+      textColumn:
+          data.textColumn.present ? data.textColumn.value : this.textColumn,
+    );
+  }
+
   @override
   String toString() {
     return (StringBuffer('WeirdData(')
@@ -1661,7 +1714,7 @@ class MyView extends ViewInfo<MyView, MyViewData> implements HasResultSet {
 
 abstract class _$CustomTablesDb extends GeneratedDatabase {
   _$CustomTablesDb(QueryExecutor e) : super(e);
-  _$CustomTablesDbManager get managers => _$CustomTablesDbManager(this);
+  $CustomTablesDbManager get managers => $CustomTablesDbManager(this);
   late final NoIds noIds = NoIds(this);
   late final WithDefaults withDefaults = WithDefaults(this);
   late final WithConstraints withConstraints = WithConstraints(this);
@@ -2077,7 +2130,59 @@ abstract class _$CustomTablesDb extends GeneratedDatabase {
       );
 }
 
-typedef $WithDefaultsInsertCompanionBuilder = WithDefaultsCompanion Function({
+typedef $NoIdsCreateCompanionBuilder = NoIdsCompanion Function({
+  required Uint8List payload,
+});
+typedef $NoIdsUpdateCompanionBuilder = NoIdsCompanion Function({
+  Value<Uint8List> payload,
+});
+
+class $NoIdsTableManager extends RootTableManager<
+    _$CustomTablesDb,
+    NoIds,
+    NoIdRow,
+    $NoIdsFilterComposer,
+    $NoIdsOrderingComposer,
+    $NoIdsCreateCompanionBuilder,
+    $NoIdsUpdateCompanionBuilder> {
+  $NoIdsTableManager(_$CustomTablesDb db, NoIds table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          filteringComposer: $NoIdsFilterComposer(ComposerState(db, table)),
+          orderingComposer: $NoIdsOrderingComposer(ComposerState(db, table)),
+          updateCompanionCallback: ({
+            Value<Uint8List> payload = const Value.absent(),
+          }) =>
+              NoIdsCompanion(
+            payload: payload,
+          ),
+          createCompanionCallback: ({
+            required Uint8List payload,
+          }) =>
+              NoIdsCompanion.insert(
+            payload: payload,
+          ),
+        ));
+}
+
+class $NoIdsFilterComposer extends FilterComposer<_$CustomTablesDb, NoIds> {
+  $NoIdsFilterComposer(super.$state);
+  ColumnFilters<Uint8List> get payload => $state.composableBuilder(
+      column: $state.table.payload,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+}
+
+class $NoIdsOrderingComposer extends OrderingComposer<_$CustomTablesDb, NoIds> {
+  $NoIdsOrderingComposer(super.$state);
+  ColumnOrderings<Uint8List> get payload => $state.composableBuilder(
+      column: $state.table.payload,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+}
+
+typedef $WithDefaultsCreateCompanionBuilder = WithDefaultsCompanion Function({
   Value<String?> a,
   Value<int?> b,
   Value<int> rowid,
@@ -2094,8 +2199,7 @@ class $WithDefaultsTableManager extends RootTableManager<
     WithDefault,
     $WithDefaultsFilterComposer,
     $WithDefaultsOrderingComposer,
-    $WithDefaultsProcessedTableManager,
-    $WithDefaultsInsertCompanionBuilder,
+    $WithDefaultsCreateCompanionBuilder,
     $WithDefaultsUpdateCompanionBuilder> {
   $WithDefaultsTableManager(_$CustomTablesDb db, WithDefaults table)
       : super(TableManagerState(
@@ -2105,8 +2209,7 @@ class $WithDefaultsTableManager extends RootTableManager<
               $WithDefaultsFilterComposer(ComposerState(db, table)),
           orderingComposer:
               $WithDefaultsOrderingComposer(ComposerState(db, table)),
-          getChildManagerBuilder: (p) => $WithDefaultsProcessedTableManager(p),
-          getUpdateCompanionBuilder: ({
+          updateCompanionCallback: ({
             Value<String?> a = const Value.absent(),
             Value<int?> b = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -2116,7 +2219,7 @@ class $WithDefaultsTableManager extends RootTableManager<
             b: b,
             rowid: rowid,
           ),
-          getInsertCompanionBuilder: ({
+          createCompanionCallback: ({
             Value<String?> a = const Value.absent(),
             Value<int?> b = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -2127,18 +2230,6 @@ class $WithDefaultsTableManager extends RootTableManager<
             rowid: rowid,
           ),
         ));
-}
-
-class $WithDefaultsProcessedTableManager extends ProcessedTableManager<
-    _$CustomTablesDb,
-    WithDefaults,
-    WithDefault,
-    $WithDefaultsFilterComposer,
-    $WithDefaultsOrderingComposer,
-    $WithDefaultsProcessedTableManager,
-    $WithDefaultsInsertCompanionBuilder,
-    $WithDefaultsUpdateCompanionBuilder> {
-  $WithDefaultsProcessedTableManager(super.$state);
 }
 
 class $WithDefaultsFilterComposer
@@ -2169,7 +2260,7 @@ class $WithDefaultsOrderingComposer
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
-typedef $WithConstraintsInsertCompanionBuilder = WithConstraintsCompanion
+typedef $WithConstraintsCreateCompanionBuilder = WithConstraintsCompanion
     Function({
   Value<String?> a,
   required int b,
@@ -2190,8 +2281,7 @@ class $WithConstraintsTableManager extends RootTableManager<
     WithConstraint,
     $WithConstraintsFilterComposer,
     $WithConstraintsOrderingComposer,
-    $WithConstraintsProcessedTableManager,
-    $WithConstraintsInsertCompanionBuilder,
+    $WithConstraintsCreateCompanionBuilder,
     $WithConstraintsUpdateCompanionBuilder> {
   $WithConstraintsTableManager(_$CustomTablesDb db, WithConstraints table)
       : super(TableManagerState(
@@ -2201,9 +2291,7 @@ class $WithConstraintsTableManager extends RootTableManager<
               $WithConstraintsFilterComposer(ComposerState(db, table)),
           orderingComposer:
               $WithConstraintsOrderingComposer(ComposerState(db, table)),
-          getChildManagerBuilder: (p) =>
-              $WithConstraintsProcessedTableManager(p),
-          getUpdateCompanionBuilder: ({
+          updateCompanionCallback: ({
             Value<String?> a = const Value.absent(),
             Value<int> b = const Value.absent(),
             Value<double?> c = const Value.absent(),
@@ -2215,7 +2303,7 @@ class $WithConstraintsTableManager extends RootTableManager<
             c: c,
             rowid: rowid,
           ),
-          getInsertCompanionBuilder: ({
+          createCompanionCallback: ({
             Value<String?> a = const Value.absent(),
             required int b,
             Value<double?> c = const Value.absent(),
@@ -2228,18 +2316,6 @@ class $WithConstraintsTableManager extends RootTableManager<
             rowid: rowid,
           ),
         ));
-}
-
-class $WithConstraintsProcessedTableManager extends ProcessedTableManager<
-    _$CustomTablesDb,
-    WithConstraints,
-    WithConstraint,
-    $WithConstraintsFilterComposer,
-    $WithConstraintsOrderingComposer,
-    $WithConstraintsProcessedTableManager,
-    $WithConstraintsInsertCompanionBuilder,
-    $WithConstraintsUpdateCompanionBuilder> {
-  $WithConstraintsProcessedTableManager(super.$state);
 }
 
 class $WithConstraintsFilterComposer
@@ -2280,7 +2356,7 @@ class $WithConstraintsOrderingComposer
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
-typedef $ConfigTableInsertCompanionBuilder = ConfigCompanion Function({
+typedef $ConfigTableCreateCompanionBuilder = ConfigCompanion Function({
   required String configKey,
   Value<DriftAny?> configValue,
   Value<SyncType?> syncState,
@@ -2301,8 +2377,7 @@ class $ConfigTableTableManager extends RootTableManager<
     Config,
     $ConfigTableFilterComposer,
     $ConfigTableOrderingComposer,
-    $ConfigTableProcessedTableManager,
-    $ConfigTableInsertCompanionBuilder,
+    $ConfigTableCreateCompanionBuilder,
     $ConfigTableUpdateCompanionBuilder> {
   $ConfigTableTableManager(_$CustomTablesDb db, ConfigTable table)
       : super(TableManagerState(
@@ -2312,8 +2387,7 @@ class $ConfigTableTableManager extends RootTableManager<
               $ConfigTableFilterComposer(ComposerState(db, table)),
           orderingComposer:
               $ConfigTableOrderingComposer(ComposerState(db, table)),
-          getChildManagerBuilder: (p) => $ConfigTableProcessedTableManager(p),
-          getUpdateCompanionBuilder: ({
+          updateCompanionCallback: ({
             Value<String> configKey = const Value.absent(),
             Value<DriftAny?> configValue = const Value.absent(),
             Value<SyncType?> syncState = const Value.absent(),
@@ -2327,7 +2401,7 @@ class $ConfigTableTableManager extends RootTableManager<
             syncStateImplicit: syncStateImplicit,
             rowid: rowid,
           ),
-          getInsertCompanionBuilder: ({
+          createCompanionCallback: ({
             required String configKey,
             Value<DriftAny?> configValue = const Value.absent(),
             Value<SyncType?> syncState = const Value.absent(),
@@ -2342,18 +2416,6 @@ class $ConfigTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
         ));
-}
-
-class $ConfigTableProcessedTableManager extends ProcessedTableManager<
-    _$CustomTablesDb,
-    ConfigTable,
-    Config,
-    $ConfigTableFilterComposer,
-    $ConfigTableOrderingComposer,
-    $ConfigTableProcessedTableManager,
-    $ConfigTableInsertCompanionBuilder,
-    $ConfigTableUpdateCompanionBuilder> {
-  $ConfigTableProcessedTableManager(super.$state);
 }
 
 class $ConfigTableFilterComposer
@@ -2408,7 +2470,7 @@ class $ConfigTableOrderingComposer
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
-typedef $MytableInsertCompanionBuilder = MytableCompanion Function({
+typedef $MytableCreateCompanionBuilder = MytableCompanion Function({
   Value<int> someid,
   Value<String?> sometext,
   Value<bool?> isInserting,
@@ -2427,8 +2489,7 @@ class $MytableTableManager extends RootTableManager<
     MytableData,
     $MytableFilterComposer,
     $MytableOrderingComposer,
-    $MytableProcessedTableManager,
-    $MytableInsertCompanionBuilder,
+    $MytableCreateCompanionBuilder,
     $MytableUpdateCompanionBuilder> {
   $MytableTableManager(_$CustomTablesDb db, Mytable table)
       : super(TableManagerState(
@@ -2436,8 +2497,7 @@ class $MytableTableManager extends RootTableManager<
           table: table,
           filteringComposer: $MytableFilterComposer(ComposerState(db, table)),
           orderingComposer: $MytableOrderingComposer(ComposerState(db, table)),
-          getChildManagerBuilder: (p) => $MytableProcessedTableManager(p),
-          getUpdateCompanionBuilder: ({
+          updateCompanionCallback: ({
             Value<int> someid = const Value.absent(),
             Value<String?> sometext = const Value.absent(),
             Value<bool?> isInserting = const Value.absent(),
@@ -2449,7 +2509,7 @@ class $MytableTableManager extends RootTableManager<
             isInserting: isInserting,
             somedate: somedate,
           ),
-          getInsertCompanionBuilder: ({
+          createCompanionCallback: ({
             Value<int> someid = const Value.absent(),
             Value<String?> sometext = const Value.absent(),
             Value<bool?> isInserting = const Value.absent(),
@@ -2462,18 +2522,6 @@ class $MytableTableManager extends RootTableManager<
             somedate: somedate,
           ),
         ));
-}
-
-class $MytableProcessedTableManager extends ProcessedTableManager<
-    _$CustomTablesDb,
-    Mytable,
-    MytableData,
-    $MytableFilterComposer,
-    $MytableOrderingComposer,
-    $MytableProcessedTableManager,
-    $MytableInsertCompanionBuilder,
-    $MytableUpdateCompanionBuilder> {
-  $MytableProcessedTableManager(super.$state);
 }
 
 class $MytableFilterComposer extends FilterComposer<_$CustomTablesDb, Mytable> {
@@ -2523,7 +2571,7 @@ class $MytableOrderingComposer
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
-typedef $EmailInsertCompanionBuilder = EmailCompanion Function({
+typedef $EmailCreateCompanionBuilder = EmailCompanion Function({
   required String sender,
   required String title,
   required String body,
@@ -2542,8 +2590,7 @@ class $EmailTableManager extends RootTableManager<
     EMail,
     $EmailFilterComposer,
     $EmailOrderingComposer,
-    $EmailProcessedTableManager,
-    $EmailInsertCompanionBuilder,
+    $EmailCreateCompanionBuilder,
     $EmailUpdateCompanionBuilder> {
   $EmailTableManager(_$CustomTablesDb db, Email table)
       : super(TableManagerState(
@@ -2551,8 +2598,7 @@ class $EmailTableManager extends RootTableManager<
           table: table,
           filteringComposer: $EmailFilterComposer(ComposerState(db, table)),
           orderingComposer: $EmailOrderingComposer(ComposerState(db, table)),
-          getChildManagerBuilder: (p) => $EmailProcessedTableManager(p),
-          getUpdateCompanionBuilder: ({
+          updateCompanionCallback: ({
             Value<String> sender = const Value.absent(),
             Value<String> title = const Value.absent(),
             Value<String> body = const Value.absent(),
@@ -2564,7 +2610,7 @@ class $EmailTableManager extends RootTableManager<
             body: body,
             rowid: rowid,
           ),
-          getInsertCompanionBuilder: ({
+          createCompanionCallback: ({
             required String sender,
             required String title,
             required String body,
@@ -2577,18 +2623,6 @@ class $EmailTableManager extends RootTableManager<
             rowid: rowid,
           ),
         ));
-}
-
-class $EmailProcessedTableManager extends ProcessedTableManager<
-    _$CustomTablesDb,
-    Email,
-    EMail,
-    $EmailFilterComposer,
-    $EmailOrderingComposer,
-    $EmailProcessedTableManager,
-    $EmailInsertCompanionBuilder,
-    $EmailUpdateCompanionBuilder> {
-  $EmailProcessedTableManager(super.$state);
 }
 
 class $EmailFilterComposer extends FilterComposer<_$CustomTablesDb, Email> {
@@ -2627,7 +2661,7 @@ class $EmailOrderingComposer extends OrderingComposer<_$CustomTablesDb, Email> {
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
-typedef $WeirdTableInsertCompanionBuilder = WeirdTableCompanion Function({
+typedef $WeirdTableCreateCompanionBuilder = WeirdTableCompanion Function({
   required int sqlClass,
   required String textColumn,
   Value<int> rowid,
@@ -2644,8 +2678,7 @@ class $WeirdTableTableManager extends RootTableManager<
     WeirdData,
     $WeirdTableFilterComposer,
     $WeirdTableOrderingComposer,
-    $WeirdTableProcessedTableManager,
-    $WeirdTableInsertCompanionBuilder,
+    $WeirdTableCreateCompanionBuilder,
     $WeirdTableUpdateCompanionBuilder> {
   $WeirdTableTableManager(_$CustomTablesDb db, WeirdTable table)
       : super(TableManagerState(
@@ -2655,8 +2688,7 @@ class $WeirdTableTableManager extends RootTableManager<
               $WeirdTableFilterComposer(ComposerState(db, table)),
           orderingComposer:
               $WeirdTableOrderingComposer(ComposerState(db, table)),
-          getChildManagerBuilder: (p) => $WeirdTableProcessedTableManager(p),
-          getUpdateCompanionBuilder: ({
+          updateCompanionCallback: ({
             Value<int> sqlClass = const Value.absent(),
             Value<String> textColumn = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -2666,7 +2698,7 @@ class $WeirdTableTableManager extends RootTableManager<
             textColumn: textColumn,
             rowid: rowid,
           ),
-          getInsertCompanionBuilder: ({
+          createCompanionCallback: ({
             required int sqlClass,
             required String textColumn,
             Value<int> rowid = const Value.absent(),
@@ -2677,18 +2709,6 @@ class $WeirdTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
         ));
-}
-
-class $WeirdTableProcessedTableManager extends ProcessedTableManager<
-    _$CustomTablesDb,
-    WeirdTable,
-    WeirdData,
-    $WeirdTableFilterComposer,
-    $WeirdTableOrderingComposer,
-    $WeirdTableProcessedTableManager,
-    $WeirdTableInsertCompanionBuilder,
-    $WeirdTableUpdateCompanionBuilder> {
-  $WeirdTableProcessedTableManager(super.$state);
 }
 
 class $WeirdTableFilterComposer
@@ -2719,9 +2739,10 @@ class $WeirdTableOrderingComposer
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
-class _$CustomTablesDbManager {
+class $CustomTablesDbManager {
   final _$CustomTablesDb _db;
-  _$CustomTablesDbManager(this._db);
+  $CustomTablesDbManager(this._db);
+  $NoIdsTableManager get noIds => $NoIdsTableManager(_db, _db.noIds);
   $WithDefaultsTableManager get withDefaults =>
       $WithDefaultsTableManager(_db, _db.withDefaults);
   $WithConstraintsTableManager get withConstraints =>

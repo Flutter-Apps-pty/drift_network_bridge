@@ -103,7 +103,7 @@ class NetworkDriftProtocol {
           ],
         payload.executorId,
       ];
-    } else if (payload is RunTransactionAction) {
+    } else if (payload is RunNestedExecutorControl) {
       return [
         _tag_RunTransactionAction,
         payload.control.index,
@@ -199,8 +199,8 @@ class NetworkDriftProtocol {
         return ExecuteBatchedStatement(
             BatchedStatements(sql, args), executorId);
       case _tag_RunTransactionAction:
-        final control = TransactionControl.values[readInt(1)];
-        return RunTransactionAction(control, readNullableInt(2));
+        final control = NestedExecutorControl.values[readInt(1)];
+        return RunNestedExecutorControl(control, readNullableInt(2));
       case _tag_EnsureOpen:
         return EnsureOpen(readInt(1), readNullableInt(2));
       case _tag_ServerInfo:

@@ -9,8 +9,9 @@ import 'package:stream_channel/stream_channel.dart';
 // ignore: implementation_imports
 import 'package:drift/src/runtime/cancellation_zone.dart';
 // ignore: implementation_imports
-import 'package:drift/src/remote/protocol.dart';
 import 'package:stack_trace/stack_trace.dart';
+// ignore: implementation_imports
+import 'package:drift/src/remote/protocol.dart';
 
 /// Wrapper around a two-way communication channel to support requests and
 /// responses.
