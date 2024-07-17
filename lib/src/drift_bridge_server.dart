@@ -13,6 +13,7 @@ import 'package:drift_network_bridge/src/network_remote/network_client_impl.dart
 import 'package:drift_network_bridge/src/network_remote/network_communication.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
+
 // ignore: implementation_imports
 import 'package:drift/src/remote/protocol.dart';
 
@@ -224,9 +225,11 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
   @experimental
   Future<DriftBridgeServer> hostAll(
       List<DriftBridgeInterface> networkInterfaces,
-      {bool onlyAcceptSingleConnection = false}) async {
+      {bool onlyAcceptSingleConnection = false,
+      QueryInterceptor? interceptor}) async {
     return host(DriftMultipleInterface(networkInterfaces),
-        onlyAcceptSingleConnection: onlyAcceptSingleConnection);
+        onlyAcceptSingleConnection: onlyAcceptSingleConnection,
+        interceptor: interceptor);
   }
 
   /// Registers a callback to be invoked when the database connection is disconnected.
@@ -268,9 +271,13 @@ extension ComputeWithDriftBridgeServer<DB extends DatabaseConnectionUser>
   /// requiring a database is also available through [networkWithDatabase].
   @experimental
   Future<DriftBridgeServer> host(DriftBridgeInterface networkInterface,
-      {bool onlyAcceptSingleConnection = false}) async {
-    // ignore: invalid_use_of_protected_member
-    final localConnection = resolvedEngine.connection;
+      {bool onlyAcceptSingleConnection = false,
+      QueryInterceptor? interceptor}) async {
+    final localConnection = interceptor == null
+        // ignore: invalid_use_of_protected_member
+        ? resolvedEngine.connection
+        // ignore: invalid_use_of_protected_member
+        : resolvedEngine.connection.interceptWith(interceptor);
 
     // Set up a drift server acting as a proxy to the existing database
     // connection.
