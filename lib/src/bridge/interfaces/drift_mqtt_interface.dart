@@ -326,6 +326,7 @@ class DriftMqttClient extends DriftBridgeClient {
           }
         } else if (SubscriptionTopic(message.topic)
             .safeMatch(PublicationTopic(sDataTopic.rawTopic))) {
+          payload = payload.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
           while (payload.contains('][')) {
             final index = payload.indexOf('][');
             onData(jsonDecode(payload.substring(0, index + 1)));
