@@ -1,25 +1,28 @@
 import 'package:drift/drift.dart';
-import 'package:drift/remote.dart';
+import 'package:drift_network_bridge/drift_network_bridge.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
 
-
-
-import 'interfaces/base/drift_bridge_interface.dart';
-import 'package:drift/src/remote/protocol.dart';
-// All of this is drift-internal and not exported, so:
-// ignore_for_file: public_member_api_docs
+import '../network_remote/network_server_impl.dart';
 
 @internal
+
+/// Message used to signal a disconnect from the other end of the connection.
 const disconnectMessage = '_disconnect';
 
 @internal
-Future<StreamChannel> connectToServer(DriftBridgeInterface networkInterface, bool serialize) async {
-  final controller =
-  StreamChannelController<Object?>(allowForeignErrors: false, sync: true);
 
-  final connection = await networkInterface.connect();
-  connection.listen((message) {
+/// Connects to a remote server using the provided [DriftBridgeInterface].
+Future<StreamChannel> remoteConnectToServer(
+    DriftBridgeInterface networkInterface, bool serialize) async {
+  final controller = StreamChannelController<Object?>(
+      allowForeignErrors: false, sync: true); // channel controller
+
+  final clientConnection = await networkInterface.connect();
+
+  /// This is dual client listening here if it receives from the server tcp it will send to tcp
+  /// and if it receives from the server mqtt it will send to mqtt database
+  clientConnection.listen((message) {
     if (message == disconnectMessage) {
       // Server has closed the connection
       controller.local.sink.close();
@@ -31,12 +34,19 @@ Future<StreamChannel> connectToServer(DriftBridgeInterface networkInterface, boo
     controller.local.sink.close();
   });
 
+  /// Receiving form server aka database and forwarding to the client
+  /// We have to distinguish between the two connections
   controller.local.stream.listen((message) {
-    connection.send(message);
+    try {
+      clientConnection.send(message);
+    } catch (err) {
+      print(err);
+    }
+    // we have to extract the identity somehow here and push it off in the send
   }, onDone: () {
     // Closed locally - notify the remote end about this.
-    connection.send(disconnectMessage);
-    connection.close();
+    clientConnection.send(disconnectMessage);
+    clientConnection.close();
   });
 
   return controller.foreign;
@@ -47,61 +57,77 @@ class NetworkDriftServer {
   final bool killServerWhenDone;
   final bool onlyAcceptSingleConnection;
 
-  final DriftServer server;
+  final DriftNetworkServer server;
   final DriftBridgeInterface networkInterface;
-  int _counter = 0;
-
+  @visibleForTesting
+  bool dontReply = false;
   NetworkDriftServer(
-      this.networkInterface,
-      QueryExecutor connection, {
-        this.killServerWhenDone = true,
-        bool closeConnectionAfterShutdown = true,
-        this.onlyAcceptSingleConnection = false,
-      }) : server = DriftServer(
-    connection,
-    allowRemoteShutdown: true,
-    closeConnectionAfterShutdown: closeConnectionAfterShutdown,
-  ) {
-    final subscription = networkInterface.incomingConnections.listen((driftBridgeConnection) {
-      if (onlyAcceptSingleConnection) {
-        networkInterface.close();
-      }
-
-      final controller = StreamChannelController<Object?>(
-          allowForeignErrors: false, sync: true);
-
-      driftBridgeConnection.listen((message) {
-        if (message == disconnectMessage) {
-          // Client closed the connection
-          controller.local.sink.close();
-
-          if (onlyAcceptSingleConnection) {
-            // The only connection was closed, so shut down the server.
-            server.shutdown();
-          }
-        } else {
-          controller.local.sink.add(message);
+    this.networkInterface,
+    QueryExecutor connection, {
+    this.killServerWhenDone = true,
+    bool closeConnectionAfterShutdown = true,
+    this.onlyAcceptSingleConnection = false,
+  }) : server = DriftNetworkServer(
+          connection,
+          allowRemoteShutdown: false,
+          closeConnectionAfterShutdown: closeConnectionAfterShutdown,
+        ) {
+    /// host listening for incoming connections first connect is TCP, second is MQTT so its serves both
+    (networkInterface.setupServer() as Future<void>).then((_) {
+      final subscription =
+          networkInterface.incomingConnections.listen((incomingConnection) {
+        if (onlyAcceptSingleConnection) {
+          networkInterface.close();
         }
-      }, onDone: () {
-        // Connection closed by the client
-        controller.local.sink.close();
+
+        final controller = StreamChannelController<Object?>(
+            allowForeignErrors: false, sync: true);
+        incomingConnection.listen((message) {
+          if (dontReply) return;
+          if (message == disconnectMessage) {
+            // Client closed the connection
+            controller.local.sink.close();
+
+            if (onlyAcceptSingleConnection) {
+              // The only connection was closed, so shut down the server.
+              server.shutdown();
+            }
+          } else {
+            controller.local.sink.add(message);
+          }
+        }, onDone: () {
+          // Connection closed by the client
+          controller.local.sink.close();
+        });
+
+        controller.local.stream.listen((message) {
+          incomingConnection.send(message); //replying to incoming connection
+        }, onDone: () {
+          // Closed locally - notify the client about this.
+          incomingConnection.send(disconnectMessage);
+          if (server is ServerNetworkImplementation &&
+              (server as ServerNetworkImplementation).allowRemoteShutdown) {
+            connection.close();
+          }
+        });
+
+        server.serve(controller.foreign, serialize: true);
       });
-
-      controller.local.stream.listen((message) {
-        driftBridgeConnection.send(message);
-      }, onDone: () {
-        // Closed locally - notify the client about this.
-        driftBridgeConnection.send(disconnectMessage);
-        connection.close();
+      server.done.then((_) {
+        subscription.cancel();
+        networkInterface.close();
+        if (killServerWhenDone) networkInterface.shutdown();
       });
-
-      server.serve(controller.foreign, serialize: true); //todo change serialize to false and test again
     });
+  }
 
-    server.done.then((_) {
-      subscription.cancel();
-      networkInterface.close();
-      if (killServerWhenDone) networkInterface.shutdown();
-    });
+  @visibleForTesting
+  void simulateNetworkFailure() {
+    dontReply = true;
+  }
+
+  @visibleForTesting
+  void simulateNetworkRecovery() {
+    dontReply = false;
   }
 }

@@ -2,19 +2,22 @@ import 'dart:async';
 
 // ignore: implementation_imports
 import 'package:drift/src/runtime/api/runtime_api.dart';
+import 'package:drift_network_bridge/src/network_remote/src/network_drift_protocol.dart';
 import 'package:drift_network_bridge/utils/watch_dog.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
 // ignore: implementation_imports
 import 'package:drift/src/runtime/cancellation_zone.dart';
 // ignore: implementation_imports
-import 'package:drift/src/remote/protocol.dart';
 import 'package:stack_trace/stack_trace.dart';
+// ignore: implementation_imports
+import 'package:drift/src/remote/protocol.dart';
+
 /// Wrapper around a two-way communication channel to support requests and
 /// responses.
 @internal
 class DriftNetworkCommunication {
-  static const _protocol = DriftProtocol();
+  static const _protocol = NetworkDriftProtocol();
   static Duration timeout = Duration(seconds: 30);
   final StreamChannel<Object?> _channel;
   final bool _debugLog;
@@ -102,7 +105,7 @@ class DriftNetworkCommunication {
 
       request?.completeWithError(const CancellationException());
     }
-    if(_pendingRequests.isEmpty){
+    if (_pendingRequests.isEmpty) {
       _watchdog.stop();
     }
   }
@@ -120,11 +123,14 @@ class DriftNetworkCommunication {
     timeout ??= DriftNetworkCommunication.timeout;
     _pendingRequests[id] = _PendingRequest(completer, StackTrace.current);
     _send(Request(id, request));
-    if(!_watchdog.isRunning){
-      _watchdog.start(timeout: timeout, onTimeout: (){
-        _pendingRequests[id]?.completeWithError(TimeoutException('Request timed out after $timeout', timeout));
-        _pendingRequests.remove(id); // Remove the pending request
-      });
+    if (!_watchdog.isRunning) {
+      _watchdog.start(
+          timeout: timeout,
+          onTimeout: () {
+            _pendingRequests[id]?.completeWithError(
+                TimeoutException('Request timed out after $timeout', timeout));
+            _pendingRequests.remove(id); // Remove the pending request
+          });
     }
 
     return completer.future;
@@ -205,9 +211,9 @@ class _PendingRequest {
         trace == null
             ? requestTrace
             : Chain([
-          if (trace is Chain) ...trace.traces else Trace.from(trace),
-          Trace.from(requestTrace)
-        ]));
+                if (trace is Chain) ...trace.traces else Trace.from(trace),
+                Trace.from(requestTrace)
+              ]));
   }
 }
 

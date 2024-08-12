@@ -162,7 +162,8 @@ class Database extends _$Database {
     return into(users).insert(user);
   }
 
-  Selectable<User> friendsOf(int id) => friendshipsOf(id).map((r) => r.user);
+  Selectable<User> friendsOf(int id) =>
+      friendshipsOf(user: id).map((r) => r.user);
 
   Future<void> makeFriends(User a, User b, {bool? goodFriends}) async {
     var friendsValue = const Value<bool>.absent();

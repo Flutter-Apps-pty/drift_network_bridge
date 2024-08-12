@@ -19,7 +19,8 @@ Future<void> main() async {
     await Process.run('git', ['clean', '-fd'], workingDirectory: targetDir);
     await Process.run('git', ['pull'], workingDirectory: targetDir);
     await Process.run('git', ['checkout', branch], workingDirectory: targetDir);
-    await Process.run('git', ['pull', 'origin', branch], workingDirectory: targetDir);
+    await Process.run('git', ['pull', 'origin', branch],
+        workingDirectory: targetDir);
     print('Repository updated.');
   } else {
     // If directory does not exist, clone the repository
@@ -28,4 +29,3 @@ Future<void> main() async {
     print('Repository cloned.');
   }
 }
-

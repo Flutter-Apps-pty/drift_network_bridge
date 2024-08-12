@@ -1,3 +1,5 @@
+// ignore_for_file: public_member_api_docs
+
 import 'dart:async';
 
 class Watchdog {
@@ -9,10 +11,12 @@ class Watchdog {
   final Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
 
-  Duration get remainingTime{
-    print('timeout!.inMilliseconds: ${timeout?.inMilliseconds}');
-    print('_stopwatch.elapsedMilliseconds: ${_stopwatch.elapsedMilliseconds}');
-    return timeout == null ?Duration.zero: Duration( milliseconds: timeout!.inMilliseconds - _stopwatch.elapsedMilliseconds);
+  Duration get remainingTime {
+    return timeout == null
+        ? Duration.zero
+        : Duration(
+            milliseconds:
+                timeout!.inMilliseconds - _stopwatch.elapsedMilliseconds);
   }
 
   void start({Duration? timeout, Function()? onTimeout}) {

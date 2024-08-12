@@ -1,29 +1,17 @@
-// ignore_for_file: deprecated_member_use
-
 @TestOn('vm')
 @Timeout(Duration(seconds: 120))
 import 'dart:async';
 // ignore: unused_import
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:drift/drift.dart';
-import 'package:drift/isolate.dart';
 import 'package:drift/native.dart';
-import 'package:drift/remote.dart';
-import 'package:drift_network_bridge/implementation/mqtt/mqtt_database_gateway.dart';
-import 'package:drift_network_bridge/src/bridge/interfaces/DriftMqttInterface.dart';
-import 'package:drift_network_bridge/src/bridge/interfaces/DriftTcpInterface.dart';
+import 'package:drift_network_bridge/src/bridge/interfaces/drift_mqtt_interface.dart';
+import 'package:drift_network_bridge/src/bridge/interfaces/drift_tcp_interface.dart';
 import 'package:drift_network_bridge/src/drift_bridge_server.dart';
 import '../integration_tests/drift_testcases/database/database.dart';
-import '../integration_tests/drift_testcases/data/sample_data.dart' as people;
 import 'package:test/test.dart';
-import '../integration_tests/drift_testcases/suite/crud_tests.dart';
-import '../integration_tests/drift_testcases/suite/custom_objects.dart';
-import '../integration_tests/drift_testcases/suite/migrations.dart';
-import '../integration_tests/drift_testcases/suite/suite.dart';
-import '../integration_tests/drift_testcases/suite/transactions.dart';
-import '../orginal/test_utils/database_vm.dart';
+import '../original/test_utils/database_vm.dart';
 
 Future<void> main() async {
   setUpAll(() {
@@ -32,116 +20,146 @@ Future<void> main() async {
   });
 
   test('Short lived TCP User Test', () async {
-    final connection = DatabaseConnection(NativeDatabase.memory(logStatements: true));
-    final db = Database(connection);
+    final db = Database(
+        DatabaseConnection(NativeDatabase.memory(logStatements: true)));
 
-    Completer<User>? userCompleter = Completer();
-    await db.networkWithDatabase(
+    final user = await db.networkWithDatabase(
       computation: (database) async {
         final user = await database.getUserById(1);
         print('User: $user');
-        userCompleter.complete(user);
+        return user;
       },
       connect: (connection) {
         return Database(connection);
-      }, networkInterface: DriftTcpInterface(),
+      },
+      networkInterface: DriftTcpInterface(),
     );
 
-    expect(userCompleter.future, completion(User(
-      id: 1,
-      name: 'Dash',
-      birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
-      profilePicture: null,
-      preferences: null,
-    )));
+    expect(
+        user,
+        User(
+          id: 1,
+          name: 'Dash',
+          birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
+          profilePicture: null,
+          preferences: null,
+        ));
   });
 
   test('Create a server based on the existing database TCP', () async {
-    final connection = DatabaseConnection(NativeDatabase.memory(logStatements: true));
+    final connection =
+        DatabaseConnection(NativeDatabase.memory(logStatements: true));
     final db = Database(connection);
-
-    final server = await db.networkConnection(DriftTcpInterface());
-
-    final client = Database(await server.connect());
+    final server = await db.host(DriftTcpInterface());
+    final connRslt = await server.connect();
+    if (connRslt.isError) {
+      throw connRslt.error!;
+    }
+    final client = Database(connRslt.value!);
     final user = await client.getUserById(1);
-    expect(user, User(
-      id: 1,
-      name: 'Dash',
-      birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
-      profilePicture: null,
-      preferences: null,
-    ));
+    expect(
+        user,
+        User(
+          id: 1,
+          name: 'Dash',
+          birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
+          profilePicture: null,
+          preferences: null,
+        ));
   });
 
-  test('Simulate 2 different applications TCP' , () async {
-    final connection = DatabaseConnection(NativeDatabase.memory(logStatements: true));
+  test('Simulate long lived TCP application', () async {
+    final connection =
+        DatabaseConnection(NativeDatabase.memory(logStatements: true));
     final db = Database(connection);
-    await db.networkConnection(DriftTcpInterface());
-    final remote = Database(await DriftTcpInterface.remote());
+    await db.host(
+        DriftTcpInterface(ipAddress: InternetAddress.anyIPv4, port: 4040));
+    final remoteConnection = await DriftTcpInterface.remote(
+        ipAddress: InternetAddress.loopbackIPv4, port: 4040);
+    final remote = Database(remoteConnection.value!);
     final user = await remote.getUserById(1);
-    expect(user, User(
-      id: 1,
-      name: 'Dash',
-      birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
-      profilePicture: null,
-      preferences: null,
-    ));
+    expect(
+        user,
+        User(
+          id: 1,
+          name: 'Dash',
+          birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
+          profilePicture: null,
+          preferences: null,
+        ));
   });
 
   test('Short lived Mqtt User Test', () async {
-    final connection = DatabaseConnection(NativeDatabase.memory(logStatements: true));
-    final db = Database(connection);
+    final db = Database(
+        DatabaseConnection(NativeDatabase.memory(logStatements: true)));
 
-    Completer<User>? userCompleter = Completer();
-    await db.networkWithDatabase(
+    final user = await db.networkWithDatabase(
       computation: (database) async {
         final user = await database.getUserById(1);
         print('User: $user');
-        userCompleter.complete(user);
+        return user;
       },
       connect: (connection) {
         return Database(connection);
-      }, networkInterface: DriftMqttInterface(),
+      },
+      networkInterface: DriftMqttInterface(host: 'test.mosquitto.org'),
     );
 
-    expect(userCompleter.future, completion(User(
-      id: 1,
-      name: 'Dash',
-      birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
-      profilePicture: null,
-      preferences: null,
-    )));
+    expect(
+        user,
+        User(
+          id: 1,
+          name: 'Dash',
+          birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
+          profilePicture: null,
+          preferences: null,
+        ));
+  });
+
+  test('Simulate long lived Mqtt application', () async {
+    final connection =
+        DatabaseConnection(NativeDatabase.memory(logStatements: true));
+    final db = Database(connection);
+    await db.host(
+        DriftMqttInterface(host: 'test.mosquitto.org', name: 'unit_device'));
+
+    /// Wait for the server to start
+    await Future.delayed(Duration(seconds: 2));
+    final remoteConnection = await DriftMqttInterface.remote(
+        host: 'test.mosquitto.org', name: 'unit_device');
+    final remote = Database(remoteConnection.value!);
+    final user = await remote.getUserById(1);
+    expect(
+        user,
+        User(
+          id: 1,
+          name: 'Dash',
+          birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
+          profilePicture: null,
+          preferences: null,
+        ));
   });
 
   test('Create a server based on the existing database TCP', () async {
-    final connection = DatabaseConnection(NativeDatabase.memory(logStatements: true));
+    final connection =
+        DatabaseConnection(NativeDatabase.memory(logStatements: true));
     final db = Database(connection);
 
-    final server = await db.networkConnection(DriftMqttInterface());
-
-    final client = Database(await server.connect());
+    final server = await db.host(DriftTcpInterface());
+    final connRslt = await server.connect();
+    if (connRslt.isError) {
+      throw connRslt.error!;
+    }
+    final client = Database(connRslt.value!);
     final user = await client.getUserById(1);
-    expect(user, User(
-      id: 1,
-      name: 'Dash',
-      birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
-      profilePicture: null,
-      preferences: null,
-    ));
-  });
-
-  test('Simulate 2 different applications Mqtt' , () async {
-    final connection = DatabaseConnection(NativeDatabase.memory(logStatements: true));
-    final db = Database(connection);
-    await db.networkConnection(DriftMqttInterface());
-    final remote = Database(await DriftMqttInterface.remote());
-    final user = await remote.getUserById(1);
-    expect(user, User(
-      id: 1,
-      name: 'Dash',
-      birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
-      profilePicture: null,
-      preferences: null,
-    ));
+    expect(
+        user,
+        User(
+          id: 1,
+          name: 'Dash',
+          birthDate: DateTime.parse('2011-10-11 00:00:00.000'),
+          profilePicture: null,
+          preferences: null,
+        ));
   });
 }

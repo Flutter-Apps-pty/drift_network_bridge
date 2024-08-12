@@ -1,11 +1,10 @@
 /// Network bridge for Drift.
-@experimental
 library drift.network_bridge;
 
-import 'package:meta/meta.dart';
-
-export 'implementation/mqtt/mqtt_database_gateway.dart';
-export 'implementation/mqtt/mqtt_stream_channel.dart';
-export 'src/network_stream_channel/database_gateway.dart';
-export 'src/network_stream_channel/network_stream_channel.dart';
 export 'src/network.dart';
+export 'src/bridge/interfaces/base/drift_bridge_interface.dart';
+export 'src/bridge/interfaces/drift_mqtt_interface.dart';
+export 'src/bridge/interfaces/drift_tcp_interface.dart';
+export 'src/drift_bridge_server.dart';
+export 'src/bridge/interfaces/drift_dual_interface.dart';
+export 'src/network_remote/runtime/remote_database.dart';

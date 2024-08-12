@@ -1,10 +1,8 @@
-
 @experimental
 library drift.network_remote;
 
 import 'package:drift/drift.dart';
 import 'package:drift/remote.dart';
-
 
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
@@ -13,7 +11,6 @@ import 'network_remote/network_communication.dart';
 // ignore: implementation_imports
 import 'package:drift/src/remote/protocol.dart';
 import 'network_remote/network_server_impl.dart';
-
 
 // ignore: subtype_of_sealed_class
 /// Serves a drift database connection over any two-way communication channel.
@@ -31,7 +28,7 @@ abstract class DriftNetworkServer implements DriftServer {
   /// If [closeConnectionAfterShutdown] is set to `true` (the default), shutting
   /// down the server will also close the [connection].
   factory DriftNetworkServer(QueryExecutor connection,
-      {bool allowRemoteShutdown = false,
+      {bool allowRemoteShutdown = true,
       bool closeConnectionAfterShutdown = true}) {
     return ServerNetworkImplementation(
         connection, allowRemoteShutdown, closeConnectionAfterShutdown);
@@ -64,7 +61,8 @@ Future<DatabaseConnection> connectToNetworkAndInitialize(
   bool serialize = true,
   bool singleClientMode = false,
 }) async {
-  final client = DriftNetworkClient(channel, debugLog, serialize, singleClientMode);
+  final client =
+      DriftNetworkClient(channel, debugLog, serialize, singleClientMode);
   await client.serverInfo;
   return client.connection;
 }
@@ -74,7 +72,8 @@ Future<DatabaseConnection> connectToNetworkAndInitialize(
 /// On the remote side, the corresponding channel must have been passed to
 /// [DriftServer.serve] for this setup to work.
 /// Also, the [DriftServer] must have been configured to allow remote-shutdowns.
-Future<void> shutdownOverNetwork(StreamChannel<Object?> channel, {bool serialize = true}) {
+Future<void> shutdownOverNetwork(StreamChannel<Object?> channel,
+    {bool serialize = true}) {
   final comm = DriftNetworkCommunication(channel, serialize: serialize);
   return comm
       .request<void>(NoArgsRequest.terminateAll)

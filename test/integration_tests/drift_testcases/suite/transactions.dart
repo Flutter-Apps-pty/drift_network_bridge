@@ -24,7 +24,7 @@ void transactionTests(TestExecutor executor) {
     expect(countResult.single, 4);
 
     final friendsResult =
-        await db.amountOfGoodFriends(people.dashId).getSingle();
+        await db.amountOfGoodFriends(user: people.dashId).getSingle();
     expect(friendsResult, 1);
 
     await executor.clearDatabaseAndClose(db);
@@ -50,7 +50,7 @@ void transactionTests(TestExecutor executor) {
     expect(countResult, 3); // only the default folks
 
     final friendsResult =
-        await db.amountOfGoodFriends(people.dashId).getSingle();
+        await db.amountOfGoodFriends(user: people.dashId).getSingle();
     expect(friendsResult, 0); // no friendship was inserted
 
     await executor.clearDatabaseAndClose(db);
