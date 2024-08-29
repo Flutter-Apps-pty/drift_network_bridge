@@ -68,7 +68,8 @@ class ServerNetworkImplementation implements DriftNetworkServer {
   }
 
   @override
-  void serve(StreamChannel<Object?> channel, {bool serialize = true}) {
+  Future<void> serve(StreamChannel<Object?> channel,
+      {bool serialize = true}) async {
     if (_isShuttingDown) {
       throw StateError('Cannot add new channels after shutdown() was called');
     }
