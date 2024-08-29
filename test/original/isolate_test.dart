@@ -12,6 +12,7 @@ import 'package:drift/src/isolate.dart';
 import 'package:drift/src/remote/communication.dart';
 import 'package:mockito/mockito.dart';
 import 'package:stack_trace/stack_trace.dart';
+import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart';
 
 import 'generated/todos.dart';
@@ -61,7 +62,8 @@ void main() {
     test('shutdownAll closes other connections', () async {
       final isolate = await spawnBackground(false);
 
-      final channel = connectToServer(isolate.connectPort, false);
+      final channel = await connectToServer(
+          isolate.connectPort, false, Duration(seconds: 10));
       final communication = DriftCommunication(channel, serialize: false);
 
       await isolate.shutdownAll();
