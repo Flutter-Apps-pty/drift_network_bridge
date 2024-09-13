@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 // ignore: implementation_imports
 import 'package:drift/src/remote/protocol.dart';
-import 'package:postgres/postgres.dart' show Type, TypeRegistry, TypedValue;
+import 'package:postgres/postgres.dart' show TypeRegistry, TypedValue;
 // ignore: implementation_imports
 import 'package:postgres/src/types/type_registry.dart';
 
@@ -64,14 +64,15 @@ class NetworkDriftProtocol {
 
     switch (tag) {
       case _tag_Request:
-        return Request(id, decodePayload(message[2]));
+        return Request(id, decodePayload(message[2]) as RequestPayload?);
       case _tag_Response_error:
         final stringTrace = message[3] as String?;
 
         return ErrorResponse(id, message[2] as Object,
             stringTrace != null ? StackTrace.fromString(stringTrace) : null);
       case _tag_Response_success:
-        return SuccessResponse(id, decodePayload(message[2]));
+        return SuccessResponse(
+            id, decodePayload(message[2]) as ResponsePayload?);
       case _tag_Response_cancelled:
         return CancelledResponse(id);
     }
@@ -80,7 +81,7 @@ class NetworkDriftProtocol {
   }
 
   dynamic encodePayload(dynamic payload) {
-    if (payload == null || payload is bool) return payload;
+    if (payload == null) return payload;
 
     if (payload is NoArgsRequest) {
       return payload.index;
@@ -156,13 +157,22 @@ class NetworkDriftProtocol {
       }
     } else if (payload is RequestCancellation) {
       return [_tag_RequestCancellation, payload.originalRequestId];
-    } else {
-      return [_tag_DirectValue, payload];
+    } else if (payload is PrimitiveResponsePayload) {
+      return switch (payload.message) {
+        final bool boolean => boolean,
+        final int integer => [_tag_DirectValue, integer],
+        _ => throw UnsupportedError('Unknown primitive response'),
+      };
     }
   }
 
   dynamic decodePayload(dynamic encoded) {
-    if (encoded == null || encoded is bool) return encoded;
+    if (encoded == null) {
+      return null;
+    }
+    if (encoded is bool) {
+      return PrimitiveResponsePayload.bool(encoded);
+    }
     int tag;
     List? fullMessage;
 
@@ -245,7 +255,7 @@ class NetworkDriftProtocol {
       case _tag_RequestCancellation:
         return RequestCancellation(readInt(1));
       case _tag_DirectValue:
-        return encoded[1];
+        return PrimitiveResponsePayload.int(castInt(encoded[1]));
     }
 
     throw ArgumentError.value(tag, 'tag', 'Tag was unknown');

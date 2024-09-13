@@ -6,3 +6,5 @@
 *.iml
 /packages
 *.lock
+/temp/
+quick.sqlite
