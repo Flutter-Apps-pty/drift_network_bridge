@@ -13,7 +13,6 @@ import 'package:drift/src/runtime/cancellation_zone.dart';
 import 'package:drift/src/remote/protocol.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'network_communication.dart';
-import 'src/network_drift_protocol.dart';
 
 /// The client part of a remote drift communication scheme.
 class DriftNetworkClient {
@@ -54,18 +53,21 @@ class DriftNetworkClient {
     _channel.setRequestHandler(_handleRequest);
   }
 
-  dynamic _handleRequest(Request request) {
+  FutureOr<ResponsePayload?> _handleRequest(Request request) {
     final payload = request.payload;
 
     if (payload is RunBeforeOpen) {
       final executor = RemoteQueryExecutor(this, payload.createdExecutor);
-      return _connectedDb.beforeOpen(executor, payload.details);
+      return _connectedDb
+          .beforeOpen(executor, payload.details)
+          .then((_) => null);
     } else if (payload is NotifyTablesUpdated) {
       _streamStore.handleTableUpdates(payload.updates.toSet(), true);
     } else if (payload is ServerInfo) {
       _serverDialect = payload.dialect;
       _serverInfo.complete(payload);
     }
+    return null;
   }
 
   /// Whether the client is still connected to the server.
@@ -115,6 +117,13 @@ abstract class _BaseExecutor extends QueryExecutor {
     );
   }
 
+  Future<int> _intRequest(
+      StatementMethod method, String sql, List<Object?>? args) async {
+    final response =
+        await _runRequest<PrimitiveResponsePayload>(method, sql, args);
+    return response.message as int;
+  }
+
   @override
   Future<void> runCustom(String statement, [List<Object?>? args]) {
     return _runRequest(
@@ -126,17 +135,17 @@ abstract class _BaseExecutor extends QueryExecutor {
 
   @override
   Future<int> runDelete(String statement, List<Object?> args) {
-    return _runRequest(StatementMethod.deleteOrUpdate, statement, args);
+    return _intRequest(StatementMethod.deleteOrUpdate, statement, args);
   }
 
   @override
   Future<int> runUpdate(String statement, List<Object?> args) {
-    return _runRequest(StatementMethod.deleteOrUpdate, statement, args);
+    return _intRequest(StatementMethod.deleteOrUpdate, statement, args);
   }
 
   @override
   Future<int> runInsert(String statement, List<Object?> args) {
-    return _runRequest(StatementMethod.insert, statement, args);
+    return _intRequest(StatementMethod.insert, statement, args);
   }
 
   @override
@@ -174,7 +183,9 @@ class RemoteQueryExecutor extends _BaseExecutor {
     }
 
     return _serverIsOpen ??= client._channel
-        .request<bool>(EnsureOpen(user.schemaVersion, _executorId));
+        .request<PrimitiveResponsePayload>(
+            EnsureOpen(user.schemaVersion, _executorId))
+        .then((payload) => payload.message as bool);
   }
 
   @override
@@ -229,8 +240,10 @@ class _RemoteTransactionExecutor extends _BaseExecutor
   }
 
   Future<bool> _openAtServer() async {
-    _executorId = await client._channel.request<int>(RunNestedExecutorControl(
-        NestedExecutorControl.beginTransaction, _outerExecutorId));
+    final response = await client._channel.request<PrimitiveResponsePayload>(
+        RunNestedExecutorControl(
+            NestedExecutorControl.beginTransaction, _outerExecutorId));
+    _executorId = response.message as int;
     return true;
   }
 
@@ -271,8 +284,11 @@ final class _RemoteExclusiveExecutor extends _BaseExecutor {
   }
 
   Future<bool> _openAtServer() async {
-    _executorId = await client._channel.request<int>(RunNestedExecutorControl(
-        NestedExecutorControl.startExclusive, parentExecutorId));
+    final response = await client._channel.request<PrimitiveResponsePayload>(
+        RunNestedExecutorControl(
+            NestedExecutorControl.startExclusive, parentExecutorId));
+
+    _executorId = response.message as int;
     return true;
   }
 
