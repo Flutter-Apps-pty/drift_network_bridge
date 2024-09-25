@@ -61,7 +61,8 @@ void main() {
     test('shutdownAll closes other connections', () async {
       final isolate = await spawnBackground(false);
 
-      final channel = connectToServer(isolate.connectPort, false);
+      final channel = await connectToServer(
+          isolate.connectPort, false, Duration(seconds: 10));
       final communication = DriftCommunication(channel, serialize: false);
 
       await isolate.shutdownAll();
