@@ -97,7 +97,8 @@ class ServerNetworkImplementation implements DriftNetworkServer {
     }
   }
 
-  dynamic _handleRequest(DriftNetworkCommunication comms, Request request) {
+  FutureOr<ResponsePayload?> _handleRequest(
+      DriftNetworkCommunication comms, Request request) {
     final payload = request.payload;
 
     if (payload is NoArgsRequest) {
@@ -131,18 +132,19 @@ class ServerNetworkImplementation implements DriftNetworkServer {
       _cancellableOperations[payload.originalRequestId]?.cancel();
       return null;
     }
+    return null;
   }
 
-  Future<bool> _handleEnsureOpen(
+  Future<ResponsePayload?> _handleEnsureOpen(
       DriftNetworkCommunication comms, EnsureOpen open) async {
     final executor = await _loadExecutor(open.executorId);
     _knownSchemaVersion = open.schemaVersion;
 
-    return await executor
-        .ensureOpen(_ServerDbUser(this, comms, open.schemaVersion));
+    return PrimitiveResponsePayload.bool(await executor
+        .ensureOpen(_ServerDbUser(this, comms, open.schemaVersion)));
   }
 
-  Future<dynamic> _runQuery(StatementMethod method, String sql,
+  Future<ResponsePayload?> _runQuery(StatementMethod method, String sql,
       List<Object?> args, int? transactionId) async {
     final executor = await _loadExecutor(transactionId);
 
@@ -152,19 +154,24 @@ class ServerNetworkImplementation implements DriftNetworkServer {
 
     switch (method) {
       case StatementMethod.custom:
-        return executor.runCustom(sql, args);
+        await executor.runCustom(sql, args);
+        return null;
       case StatementMethod.deleteOrUpdate:
-        return executor.runDelete(sql, args);
+        return PrimitiveResponsePayload.int(
+            await executor.runDelete(sql, args));
       case StatementMethod.insert:
-        return executor.runInsert(sql, args);
+        return PrimitiveResponsePayload.int(
+            await executor.runInsert(sql, args));
       case StatementMethod.select:
         return SelectResult(await executor.runSelect(sql, args));
     }
   }
 
-  Future<void> _runBatched(BatchedStatements stmts, int? transactionId) async {
+  Future<ResponsePayload?> _runBatched(
+      BatchedStatements stmts, int? transactionId) async {
     final executor = await _loadExecutor(transactionId);
     await executor.runBatched(stmts);
+    return null;
   }
 
   Future<QueryExecutor> _loadExecutor(int? transactionId) async {
@@ -205,19 +212,21 @@ class ServerNetworkImplementation implements DriftNetworkServer {
     return id;
   }
 
-  Future<dynamic> _transactionControl(DriftNetworkCommunication comm,
+  Future<ResponsePayload?> _transactionControl(DriftNetworkCommunication comm,
       NestedExecutorControl action, int? executorId) async {
     if (action == NestedExecutorControl.beginTransaction) {
-      return await _spawnTransaction(comm, executorId);
+      return PrimitiveResponsePayload.int(
+          await _spawnTransaction(comm, executorId));
     } else if (action == NestedExecutorControl.startExclusive) {
-      return await _spawnExclusive(comm, executorId);
+      return PrimitiveResponsePayload.int(
+          await _spawnExclusive(comm, executorId));
     }
 
     final executor = await _loadExecutor(executorId);
     if (action == NestedExecutorControl.endExclusive) {
       await executor.close();
       _releaseExecutor(executorId!);
-      return;
+      return null;
     }
 
     if (executor is! TransactionExecutor) {
@@ -249,6 +258,7 @@ class ServerNetworkImplementation implements DriftNetworkServer {
       default:
         assert(false, 'Unknown TransactionControl');
     }
+    return null;
   }
 
   void _releaseExecutor(int id) {

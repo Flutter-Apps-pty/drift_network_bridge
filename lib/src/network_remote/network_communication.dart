@@ -117,7 +117,8 @@ class DriftNetworkCommunication {
   /// request.
   /// The [timeout] parameter specifies how long to wait for a response before
   /// timing out.
-  Future<T> request<T>(Object? request, {int? requestId, Duration? timeout}) {
+  Future<T> request<T>(RequestPayload? request,
+      {int? requestId, Duration? timeout}) {
     final id = requestId ?? newRequestId();
     final completer = Completer<T>();
     timeout ??= DriftNetworkCommunication.timeout;
@@ -139,7 +140,7 @@ class DriftNetworkCommunication {
   /// Sends the [notification] to the other remote.
   ///
   /// The acknowledgement from the remote will be ignored.
-  void notify(Object? notification) {
+  void notify(RequestPayload? notification) {
     _send(Request(newRequestId(), notification));
   }
 
@@ -157,7 +158,7 @@ class DriftNetworkCommunication {
   }
 
   /// Sends a response for a handled [Request].
-  void respond(Request request, Object? response) {
+  void respond(Request request, ResponsePayload? response) {
     _send(SuccessResponse(request.id, response));
   }
 
@@ -180,7 +181,7 @@ class DriftNetworkCommunication {
   /// [handler] returns a [Future], it will be awaited.
   void setRequestHandler(dynamic Function(Request) handler) {
     incomingRequests.listen((request) async {
-      Object? response;
+      ResponsePayload? response;
 
       try {
         response = await handler(request);
