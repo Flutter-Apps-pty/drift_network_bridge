@@ -6,7 +6,6 @@ import 'package:drift/drift.dart';
 import 'package:drift_network_bridge/error_handling/error_or.dart';
 import 'package:drift_network_bridge/src/bridge/interfaces/base/drift_bridge_interface.dart';
 import 'package:logger/logger.dart';
-import 'package:uuid/v8generic.dart';
 
 /// A Drift bridge interface implementation using TCP for communication.
 class DriftTcpInterface extends DriftBridgeInterface {
@@ -161,15 +160,37 @@ class DriftTcpClient extends DriftBridgeClient {
         _buffer.clear();
         return;
       }
+
       int bracketStart = _buffer.indexOf('['.codeUnitAt(0));
       if (bracketStart == -1) break;
 
       int bracketEnd = -1;
       int openBrackets = 0;
+      bool inString = false;
+      bool escape = false; // New variable to track escape characters
+
       for (int i = bracketStart; i < _buffer.length; i++) {
-        if (_buffer[i] == '['.codeUnitAt(0)) openBrackets++;
-        if (_buffer[i] == ']'.codeUnitAt(0)) openBrackets--;
-        if (openBrackets == 0) {
+        int charCode = _buffer[i];
+
+        if (escape) {
+          // Current character is escaped; skip special processing
+          escape = false;
+        } else {
+          if (charCode == '\\'.codeUnitAt(0)) {
+            // Next character is escaped
+            escape = true;
+          } else if (charCode == '"'.codeUnitAt(0)) {
+            // Toggle inString state
+            inString = !inString;
+          } else if (!inString) {
+            // Only count brackets outside of strings
+            if (charCode == '['.codeUnitAt(0)) openBrackets++;
+            if (charCode == ']'.codeUnitAt(0)) openBrackets--;
+          }
+        }
+
+        // Check if we've found a complete JSON array
+        if (openBrackets == 0 && !inString && !escape) {
           bracketEnd = i;
           break;
         }
@@ -178,18 +199,22 @@ class DriftTcpClient extends DriftBridgeClient {
       if (bracketEnd == -1) break; // No complete message found
 
       String message = utf8.decode(
-          _buffer.sublist(bracketStart, bracketEnd + 1),
-          allowMalformed: true);
+        _buffer.sublist(bracketStart, bracketEnd + 1),
+        allowMalformed: true,
+      );
 
-      // Remove unprintable characters
+      // Optionally remove unprintable characters
       message = message.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
+
       try {
-        _messageController.add(jsonDecode(message));
+        var decodedMessage = jsonDecode(message);
+        _messageController.add(decodedMessage);
       } catch (e) {
         Logger().e('Error decoding message: $e');
         _messageController.add(message); // Fall back to sending the raw string
       }
 
+      // Remove the processed message from the buffer
       _buffer = _buffer.sublist(bracketEnd + 1);
     }
 
